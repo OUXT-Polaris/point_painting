@@ -12,38 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PKGNAME__VISIBILITY_CONTROL_H_
-#define PKGNAME__VISIBILITY_CONTROL_H_
+#ifndef POINTPAINTING_FUSIONCOMPONENT__VISIBILITY_CONTROL_H_
+#define POINTPAINTING_FUSIONCOMPONENT__VISIBILITY_CONTROL_H_
 
 // This logic was borrowed (then namespaced) from the examples on the gcc wiki:
 //     https://gcc.gnu.org/wiki/Visibility
 
 #if defined _WIN32 || defined __CYGWIN__
 #ifdef __GNUC__
-#define PKGNAME_EXPORT __attribute__((dllexport))
-#define PKGNAME_IMPORT __attribute__((dllimport))
+#define POINTPAINTING_FUSIONCOMPONENT_EXPORT __attribute__((dllexport))
+#define POINTPAINTING_FUSIONCOMPONENT_IMPORT __attribute__((dllimport))
 #else
-#define PKGNAME_EXPORT __declspec(dllexport)
-#define PKGNAME_IMPORT __declspec(dllimport)
+#define POINTPAINTING_FUSIONCOMPONENT_EXPORT __declspec(dllexport)
+#define POINTPAINTING_FUSIONCOMPONENT_IMPORT __declspec(dllimport)
 #endif
-#ifdef PKGNAME_BUILDING_LIBRARY
-#define PKGNAME_PUBLIC PKGNAME_EXPORT
+#ifdef POINTPAINTING_FUSIONCOMPONENT_BUILDING_LIBRARY
+#define POINTPAINTING_FUSIONCOMPONENT_PUBLIC POINTPAINTING_FUSIONCOMPONENT_EXPORT
 #else
-#define PKGNAME_PUBLIC PKGNAME_IMPORT
+#define POINTPAINTING_FUSIONCOMPONENT_PUBLIC POINTPAINTING_FUSIONCOMPONENT_IMPORT
 #endif
-#define PKGNAME_PUBLIC_TYPE PKGNAME_PUBLIC
-#define PKGNAME_LOCAL
+#define POINTPAINTING_FUSIONCOMPONENT_PUBLIC_TYPE POINTPAINTING_FUSIONCOMPONENT_PUBLIC
+#define POINTPAINTING_FUSIONCOMPONENT_LOCAL
 #else
-#define PKGNAME_EXPORT __attribute__((visibility("default")))
-#define PKGNAME_IMPORT
+#define POINTPAINTING_FUSIONCOMPONENT_EXPORT __attribute__((visibility("default")))
+#define POINTPAINTING_FUSIONCOMPONENT_IMPORT
 #if __GNUC__ >= 4
-#define PKGNAME_PUBLIC __attribute__((visibility("default")))
-#define PKGNAME_LOCAL __attribute__((visibility("hidden")))
+#define POINTPAINTING_FUSIONCOMPONENT_PUBLIC __attribute__((visibility("default")))
+#define POINTPAINTING_FUSIONCOMPONENT_LOCAL __attribute__((visibility("hidden")))
 #else
-#define PKGNAME_PUBLIC
-#define PKGNAME_LOCAL
+#define POINTPAINTING_FUSIONCOMPONENT_PUBLIC
+#define POINTPAINTING_FUSIONCOMPONENT_LOCAL
 #endif
-#define PKGNAME_PUBLIC_TYPE
+#define POINTPAINTING_FUSIONCOMPONENT_PUBLIC_TYPE
 #endif
 
-#endif  // PKGNAME__VISIBILITY_CONTROL_H_
+#endif  // POINTPAINTING_FUSIONCOMPONENT__VISIBILITY_CONTROL_H_

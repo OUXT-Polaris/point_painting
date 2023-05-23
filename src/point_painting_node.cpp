@@ -14,14 +14,14 @@
 
 // Headers in this package
 #include <memory>
-#include <pkgname/example_component.hpp>
+#include <point_painting/point_painting_component.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
-  auto component = std::make_shared<pkgname::ExampleComponent>(options);
+  auto component = std::make_shared<point_painting::PointPaintingFusionComponent>(options);
   rclcpp::spin(component);
   rclcpp::shutdown();
   return 0;

@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "pkgname/visibility_control.h"
+#include "point_painting/visibility_control.h"
 
 // Headers in ROS2
 #include <rclcpp/rclcpp.hpp>
@@ -23,16 +23,17 @@
 #include <memory>  // shared_ptr in pub_
 //#include <perception_msgs/msg/tracking2_d.hpp> // Tracking2D in pub_
 
-namespace pkgname
+namespace point_segmentation_fusion 
 {
 class ExampleComponent : public rclcpp::Node
 {
 public:
-  PKGNAME_PUBLIC
-  explicit ExampleComponent(const rclcpp::NodeOptions & options);
+  POINTPAINTING_FUSIONCOMPONENT_PUBLIC
+  explicit PointPaintingFusionComponent(const rclcpp::NodeOptions & options);
+  virtual ~PointPaintingFusionComponent();
 
 private:
   //  std::shared_ptr<rclcpp::Publisher<perception_msgs::msg::Tracking2D>> pub_;
   //  std::shared_ptr<rclcpp::Subscription<perception_msgs::msg::Tracking2D>> sub_;
 };
-}  // namespace pkgname
+}  // namespace point_segmentation_fusion 

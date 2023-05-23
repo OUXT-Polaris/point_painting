@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
-project(pkgname)
-set(COMP_NAME "Example")
+project(point_painting)
+set(point_painting_component "Example")
 string(TOLOWER ${COMP_NAME} COMP_NAME_LOWER)
 
 
