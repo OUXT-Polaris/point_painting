@@ -12,21 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Headers in this package
-#include "pkgname/example_component.hpp"
+#include <memory>
+#include <point_painting/point_painting_component.hpp>
+#include <rclcpp/rclcpp.hpp>
 
-// Components
-#include <rclcpp_components/register_node_macro.hpp>
-
-// Headers needed in this component
-
-namespace pkgname
+int main(int argc, char * argv[])
 {
-ExampleComponent::ExampleComponent(const rclcpp::NodeOptions & options)
-: Node("example_node", options)
-{
-  //TODO:
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  auto component = std::make_shared<point_painting::PointPaintingFusionComponent>(options);
+  rclcpp::spin(component);
+  rclcpp::shutdown();
+  return 0;
 }
-}  // namespace pkgname
-
-RCLCPP_COMPONENTS_REGISTER_NODE(pkgname::ExampleComponent)
