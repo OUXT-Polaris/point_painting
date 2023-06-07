@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Headers in this package
 #include <memory>
 #include <point_painting/point_painting_component.hpp>
 #include <rclcpp/rclcpp.hpp>

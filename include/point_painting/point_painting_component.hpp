@@ -12,20 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef POINTPAINTING_FUSIONCOMPONENT_
+#define POINTPAINTING_FUSIONCOMPONENT_
+
+
 #pragma once
 
-#include "point_painting/visibility_control.h"
-
-// Headers in ROS2
+#include <point_painting/visibility_control.h>
 #include <rclcpp/rclcpp.hpp>
-
-// Headers needed in pub/sub, exposed types
-#include <memory>  // shared_ptr in pub_
+#include <memory>  
+#include <sensor_msgs/msg/point_cloud2.hpp>
 //#include <perception_msgs/msg/tracking2_d.hpp> // Tracking2D in pub_
 
-namespace point_segmentation_fusion 
+namespace point_painting
 {
-class ExampleComponent : public rclcpp::Node
+class PointPaintingFusionComponent : public rclcpp::Node
 {
 public:
   POINTPAINTING_FUSIONCOMPONENT_PUBLIC
@@ -33,7 +34,16 @@ public:
   virtual ~PointPaintingFusionComponent();
 
 private:
-  //  std::shared_ptr<rclcpp::Publisher<perception_msgs::msg::Tracking2D>> pub_;
-  //  std::shared_ptr<rclcpp::Subscription<perception_msgs::msg::Tracking2D>> sub_;
+  void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
+  void fuseOnSingleImage(
+  //const SegmentationInfo & SegmentationInfo,
+  // const sensor_msgs::msg::CameraInfo & camera_info,
+  // sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
+  );
+  void timer_callback();
+  rclcpp::TimerBase::SharedPtr timer_;
+  //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
 };
 }  // namespace point_segmentation_fusion 
+#endif 

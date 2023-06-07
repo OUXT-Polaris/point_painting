@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(point_painting)
-set(point_painting_component "Example")
+set(COMP_NAME "point_painting")
 string(TOLOWER ${COMP_NAME} COMP_NAME_LOWER)
 
 
@@ -10,6 +10,12 @@ endif()
 
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
+
+set(msg_files
+  "msg/SegmentationInfo.msg"
+)
+
+
 ament_auto_find_build_dependencies()
 
 if(BUILD_TESTING)
