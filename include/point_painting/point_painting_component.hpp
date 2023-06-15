@@ -22,6 +22,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <memory>  
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include "point_painting/msg/SegmentationInfo.msg"
+
 //#include <perception_msgs/msg/tracking2_d.hpp> // Tracking2D in pub_
 
 namespace point_painting
@@ -36,14 +39,16 @@ public:
 private:
   void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
   void fuseOnSingleImage(
-  //const SegmentationInfo & SegmentationInfo,
-  // const sensor_msgs::msg::CameraInfo & camera_info,
-  // sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
+  const SegmentationInfo & SegmentationInfo,
+  const sensor_msgs::msg::CameraInfo & camera_info,
+  sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
   );
-  void timer_callback();
-  rclcpp::TimerBase::SharedPtr timer_;
+
   //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+  rclcpp::Subscription<point_painting::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
+
 };
-}  // namespace point_segmentation_fusion 
+}  
 #endif 

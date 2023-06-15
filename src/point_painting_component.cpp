@@ -18,6 +18,12 @@
 //ros2
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <tf2/convert.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <sensor_msgs/msg/camera_info.hpp>
+
+
+#include "point_painting/msg/SegmentationInfo.msg"
 
 namespace point_painting
 {
@@ -26,36 +32,40 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
 {
   // const float score_threshold =static_cast<float>(this->declare_parameter<double>("score_threshold", 0.4));
   // class_names_ = this->declare_parameter<std::vector<std::string>>("class_names");
-  // pointcloud_range = this->declare_parameter<std::vector<double>>("point_cloud_range");
+  pointcloud_range = this->declare_parameter<std::vector<double>>("point_cloud_range");
   // const auto min_area_matrix = this->declare_parameter<std::vector<double>>("min_area_matrix");
   // const auto max_area_matrix = this->declare_parameter<std::vector<double>>("max_area_matrix");
   using namespace std::chrono_literals;
   timer_ = create_wall_timer(10ms, [this]() { timer_callback(); }); //ラムダ式　thisは周りの変数を渡す(通常はスコープ範囲は外見れない) 
+  segmentation_sub_ = create_subscription<point_painting::msg::SegmentationInfo>(
+    "/SegmentationInfo", 1, [this](const  seg_msg) { segmentation_callback(seg_msg); });
+  pointcloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
+    "/pointcloud",10, [this](const sensor_msgs::msg::PointCloud2 & point){pointcloud_callback(point);});
+  camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
+    "camera_info_topic", 10, [this](const sensor_msgs::msg::CameraInfo & camera_info){camera_info_callback(point);});
 }
 
 PointPaintingFusionComponent::~PointPaintingFusionComponent() {}
 
-void PointPaintingFusionComponent::timer_callback()
+
+
+void PointPaintingFusionComponent::segmentation_callback(point_painting::msg::SegmentationInfo &  segmentationinfo)
 {
-  //subscriber
-  // pointcloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-  //   "/pointcloud",10, [this](const sensor_msgs::msg::PointCloud2::SharedPtr & point){
-  //     // ROS2のロギング用マクロ、ターミナルにログ出力しつつログファイルにも吐き出してくれる便利なやつ
-  //     preprocess(point);});
-  //segmentation_sub_ = create_subscription<SegmentationInfo>(
-    //"/SegmentationInfo", 1, [this](const  seg_msg) { segmentation_callback(seg_msg); });
+  RCLCPP_INFO(node->get_logger(),"Pub:%d, %d",segmentationinfo->scores);
 }
-// void PointPaintingFusionComponent::segmentation(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg)
-// { 
-//   preprocess(painted_pointcloud_msg)
-//   //fuseOnSingleImage(painted_pointcloud_msg)
-// }
+
+void PointPaintingFusionComponent::camera_info_callback(sensor_msgs::msg::CameraInfo & camera_info)
+{
+  RCLCPP_INFO(node->get_logger(),"Pub:%d, %d",camera_info);
+}
+
+void PointPaintingFusionComponent::pointcloud_callback(ensor_msgs::msg::PointCloud2 &  pointcloud)
+{
+  preprocess(pointcloud);
+  fuseOnSingleImage(segmentationinfo,camera_info,pointcloud);
+}
 
 
-// void PointPaintingFusionComponent::segmentation()
-// {
-  
-// }
 
 void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg)
 {
@@ -64,7 +74,7 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
   painted_pointcloud_msg.width = tmp.width;
 
   sensor_msgs::PointCloud2Modifier pcd_modifier(painted_pointcloud_msg);
-  pcd_modifier.clear(); //なぜここでclearしてるのか
+  pcd_modifier.clear(); 
   int num_fields = 7;
   //ここで新しいポイントクラウドのフィールドを設定する
   pcd_modifier.setPointCloud2Fields(
@@ -75,8 +85,7 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
     "BLOCK_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
     "DOCK", 1, sensor_msgs::msg::PointField::FLOAT32
     );
-  painted_pointcloud_msg.point_step = num_fields * sizeof(float); //バイト単位のポイントの長さ
-  
+  painted_pointcloud_msg.point_step = num_fields * sizeof(float); 
 
   // filter points out of range
   const auto painted_point_step = painted_pointcloud_msg.point_step;
@@ -89,17 +98,16 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
        iter_z(tmp, "z");
        iter_x != iter_x.end();
        ++iter_x, ++iter_y, ++iter_z, ++iter_painted_x, ++iter_painted_y, ++iter_painted_z) {
-    // if (
-    //   *iter_x <= pointcloud_range.at(0) || *iter_x >= pointcloud_range.at(3) ||
-    //   *iter_y <= pointcloud_range.at(1) || *iter_y >= pointcloud_range.at(4)) {
-    //   continue;
-    // } else {
-    //   *iter_painted_x = *iter_x;
-    //   *iter_painted_y = *iter_y;
-    //   *iter_painted_z = *iter_z;
-    //   j += painted_point_step;
-    // }
-    
+    if (
+      *iter_x <= pointcloud_range.at(0) || *iter_x >= pointcloud_range.at(3) ||
+      *iter_y <= pointcloud_range.at(1) || *iter_y >= pointcloud_range.at(4)) {
+      continue;
+    } else {
+      *iter_painted_x = *iter_x;
+      *iter_painted_y = *iter_y;
+      *iter_painted_z = *iter_z;
+      j += painted_point_step;
+    }
   }
   painted_pointcloud_msg.data.resize(j);
   painted_pointcloud_msg.width = static_cast<uint32_t>(painted_pointcloud_msg.data.size() / painted_pointcloud_msg.height /painted_pointcloud_msg.point_step);
@@ -107,42 +115,42 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
 }
 
   
-// void PointPaintingFusionComponent::fuseOnSingleImage(
-//   const SegmentationInfo & SegmentationInfo,
-//   const sensor_msgs::msg::CameraInfo & camera_info,
-//   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
-// )
-// {
-//   std::vector<sensor_msgs::msg::RegionOfInterest> segmentationInfo; //segmantationメッセージに書き換え
-//   std::vector<Eigen::Vector2d> debug_image_points;
+void PointPaintingFusionComponent::fuseOnSingleImage(
+  const SegmentationInfo & SegmentationInfo,
+  const sensor_msgs::msg::CameraInfo & camera_info,
+  sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
+)
+{
+  std::vector<point_painting::msg::SegmentationInfo> segmentationInfo; //segmantationメッセージに書き換え
+  std::vector<Eigen::Vector2d> debug_image_points;
 
-//   geometry_msgs::msg::TransformStamped transform_stamped;
-//   {
-//     //https://docs.ros.org/en/jade/api/tf/html/c++/classtf_1_1StampedTransform.html
-//     const auto transform_stamped_optional = getTransformStamped(
-//       tf_buffer_, /*target*/ camera_info.header.frame_id,
-//       /*source*/ painted_pointcloud_msg.header.frame_id, camera_info.header.stamp);
-//     if (!transform_stamped_optional) {
-//       return;
-//     }
-//     transform_stamped = transform_stamped_optional.value();
-//   }
+  geometry_msgs::msg::TransformStamped transform_stamped;
+  {
+    //https://docs.ros.org/en/jade/api/tf/html/c++/classtf_1_1StampedTransform.html
+    const auto transform_stamped_optional = getTransformStamped(
+      tf_buffer_, /*target*/ camera_info.header.frame_id,
+      /*source*/ painted_pointcloud_msg.header.frame_id, camera_info.header.stamp);
+    if (!transform_stamped_optional) {
+      return;
+    }
+    transform_stamped = transform_stamped_optional.value();
+  }
 
-//   geometry_msgs::msg::TransformStamped transform_stamped;
+  geometry_msgs::msg::TransformStamped transform_stamped;
 
-//   //カメラの外パラを取得　Matrix4dは4✕4の行列を作る関数 
-//   Eigen::Matrix4d camera_projection;
-//   camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
-//     camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
-//     camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
-//     camera_info.p.at(11);
+  //カメラの外パラを取得　Matrix4dは4✕4の行列を作る関数 
+  Eigen::Matrix4d camera_projection;
+  camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
+    camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
+    camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
+    camera_info.p.at(11);
   
-//   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
-//   tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-//  // iterate points
-//   sensor_msgs::PointCloud2Iterator<float> iter_car(painted_pointcloud_msg, "CAR");
-//   sensor_msgs::PointCloud2Iterator<float> iter_ped(painted_pointcloud_msg, "PEDESTRIAN");
-//   sensor_msgs::PointCloud2Iterator<float> iter_bic(painted_pointcloud_msg, "BICYCLE");
+  sensor_msgs::msg::PointCloud2 transformed_pointcloud;
+  tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
+  // iterate points
+  sensor_msgs::PointCloud2Iterator<float> iter_car(painted_pointcloud_msg, "CAR");
+  sensor_msgs::PointCloud2Iterator<float> iter_ped(painted_pointcloud_msg, "PEDESTRIAN");
+  sensor_msgs::PointCloud2Iterator<float> iter_bic(painted_pointcloud_msg, "BICYCLE");
 
 //   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
 //        iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
@@ -197,5 +205,22 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
 // }
 // }
 }
+
+
+
+// std::optional<geometry_msgs::msg::TransformStamped> getTransformStamped(
+//   const tf2_ros::Buffer & tf_buffer, const std::string & target_frame_id,
+//   const std::string & source_frame_id, const rclcpp::Time & time)
+// {
+//   try {
+//     geometry_msgs::msg::TransformStamped transform_stamped;
+//     transform_stamped = tf_buffer.lookupTransform(
+//       target_frame_id, source_frame_id, time, rclcpp::Duration::from_seconds(0.5));
+//     return transform_stamped;
+//   } catch (tf2::TransformException & ex) {
+//     RCLCPP_WARN_STREAM(rclcpp::get_logger("image_projection_based_fusion"), ex.what());
+//     return std::nullopt;
+// }
+
 
 RCLCPP_COMPONENTS_REGISTER_NODE(point_painting::PointPaintingFusionComponent)
