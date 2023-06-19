@@ -10,32 +10,9 @@ endif()
 
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
-
-
-#追加部分
-# find_package(
-#     std_msgs
-#     sensor_msgs
-#     message_generation
-# )
-
-# generate_messages(
-#     DEPENDENCIES
-#     std_msgs
-#     sensor_msgs
-# )
-
-find_package(rosidl_default_generators REQUIRED)
-
-set(msg_files
-  "msg/SegmentationInfo.msg"
-)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${msg_files}
-)
-ament_export_dependencies(rosidl_default_runtime)
-#ここまで
+find_package(segmentation_msg REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 ament_auto_find_build_dependencies()
 

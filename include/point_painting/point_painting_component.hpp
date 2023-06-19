@@ -23,9 +23,8 @@
 #include <memory>  
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-#include "point_painting/msg/SegmentationInfo.msg"
+#include "segmentation_msg/msg/segmentation_info.hpp"
 
-//#include <perception_msgs/msg/tracking2_d.hpp> // Tracking2D in pub_
 
 namespace point_painting
 {
