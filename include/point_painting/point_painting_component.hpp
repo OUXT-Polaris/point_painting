@@ -21,6 +21,7 @@
 #include <point_painting/visibility_control.h>
 #include <rclcpp/rclcpp.hpp>
 #include <memory>  
+#include <tf2_ros/buffer.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include "segmentation_msg/msg/segmentation_info.hpp"
@@ -36,18 +37,44 @@ public:
   virtual ~PointPaintingFusionComponent();
 
 private:
+  tf2_ros::Buffer tfBuffer;
+  std::vector<segmentation_msg::msg::SegmentationInfo> segmentationinfo_; 
+  sensor_msgs::msg::CameraInfo  camera_info_;
+
   void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
   void fuseOnSingleImage(
-  const SegmentationInfo & SegmentationInfo,
-  const sensor_msgs::msg::CameraInfo & camera_info,
-  sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
+  const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
+   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
+  const sensor_msgs::msg::CameraInfo & camera_info
   );
+  std::optional<geometry_msgs::msg::TransformStamped> getTransformStamped(
+  const tf2_ros::Buffer & tf_buffer, const std::string & target_frame_id,
+  const std::string & source_frame_id, const rclcpp::Time & time);
 
+  sensor_msgs::msg::CameraInfo  camera_info ;
+  segmentation_msg::msg::SegmentationInfo   segmentationinfo ;
+  
+  rclcpp::TimerBase::SharedPtr timer_;
+  void timer_callback();
+ 
   //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
-  rclcpp::Subscription<point_painting::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
+  rclcpp::Subscription<segmentation_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
 
+  std::vector<std::string> class_names_;
+  std::vector<double> pointcloud_range;
+
+  void segmentation_callback(const segmentation_msg::msg::SegmentationInfo &  segmentationinfo);
+  void pointcloud_callback(sensor_msgs::msg::PointCloud2 &  pointcloud);
+  void camera_info_callback(const sensor_msgs::msg::CameraInfo  & camera_info);
+
+  void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
+  void fuseOnSingleImage(
+  const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
+  const sensor_msgs::msg::CameraInfo & camera_info,
+  sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
+  );
 };
 }  
 #endif 

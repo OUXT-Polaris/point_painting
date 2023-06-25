@@ -1,0 +1,59 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/suke/ouxt_ws/install/point_painting/include/**",
+        "/home/suke/ouxt_ws/install/segmentation_msg/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/navi_sim/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/velocity_planner/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/robotx_communication/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/tcp_sender/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/ros_kvh1750/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/serial/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/playstation_controller_drivers/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/sdl2_vendor2/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/scan_segmentation/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/robotx_msgs/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/robotx_costmap_calculator/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/robotx_bt_planner/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/robotx_behavior_tree/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/robotx_behavior_msgs/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/pure_pursuit_planner/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/perception/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/pcl_apps/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/perception_msgs/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/pcl_apps_msgs/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/ndt_omp/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/lidar_camera_fusion/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/message_synchronizer/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/lua_vendor/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/local_waypoint_server/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/image_processing_utils/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/hungarian_solver/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/hermite_path_planner/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/hermite_path_msgs/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/geometry_msgs_data_buffer/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/geographic_conversion/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/geodesy/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/geographic_msgs/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/data_buffer/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/boost_geometry_util/include/**",
+        "/home/suke/ouxt_automation/robotx_ws/install/behavior_tree_action_builder/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/suke/ouxt_ws/src/point_painting/include/**",
+        "/home/suke/ouxt_ws/src/segmentation_msg/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
