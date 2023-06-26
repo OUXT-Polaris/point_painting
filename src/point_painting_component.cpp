@@ -149,7 +149,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   //点群::LiDAR座標系⇨カメラ行列
   tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-  uint8_t pixel[] = SegmentationInfo.segmentation.data;
+  std::vector<uint8_t> pixel = SegmentationInfo.segmentation.data;
 
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
        iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
@@ -162,14 +162,15 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     const size_t target_index = target_row * width + target_col;
 
     //途中
-    // for (size_t i = 0; i < pixel_size; ++i) {
-    //   rgb_values[i] = msg->data[pixel_offset + i];
-    // }
+    std::vector<uint8_t> rgb_values(3);
+    for (size_t i = 0; i < 3; ++i) {
+      rgb_values[i] = pixel[target_index];
+    }
 
     //withではなくif文で画像のRGB値を見る感じ
-    int red = pixel[2];   
-    int green = pixel[1]; 
-    int blue = pixel[0];  
+    int red = rgb_values[0];   
+    int green = rgb_values[1]; 
+    int blue = rgb_values[2];  
     std::string result;
      if (red == 255 && green == 0 && blue == 0) {
         result = "Class A";
