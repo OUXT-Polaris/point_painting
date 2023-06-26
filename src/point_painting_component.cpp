@@ -130,6 +130,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
 {
   uint32_t width = SegmentationInfo.segmentation.width;
   uint32_t height = SegmentationInfo.segmentation.height;
+
   geometry_msgs::msg::TransformStamped transform_stamped;
   {
     const auto transform_stamped_optional = getTransformStamped(
@@ -149,7 +150,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   //点群::LiDAR座標系⇨カメラ行列
   tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-  std::vector<uint8_t> pixel = SegmentationInfo.segmentation.data;
+  std::vector<uint8_t> seg_img = SegmentationInfo.segmentation.data;
 
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
        iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
@@ -157,31 +158,32 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     Eigen::Vector4d projected_point = camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
     Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
     
-    int target_row = normalized_projected_point.y() ;
-    int target_col = normalized_projected_point.x() ; 
-    const size_t target_index = target_row * width + target_col;
-
-    //途中
+    int target_row = int(normalized_projected_point.y()) ;
+    int target_col = int(normalized_projected_point.x()) ; 
+    const size_t target_index = target_row * width + target_col*3;
+    if (
+      target_index <= 0 || target_index >= width*height
+     ) {
+      continue;
+    } else {
     std::vector<uint8_t> rgb_values(3);
     for (size_t i = 0; i < 3; ++i) {
-      rgb_values[i] = pixel[target_index];
+      rgb_values[i] = seg_img[target_index+i];
     }
 
     //withではなくif文で画像のRGB値を見る感じ
-    int red = rgb_values[0];   
-    int green = rgb_values[1]; 
-    int blue = rgb_values[2];  
     std::string result;
-     if (red == 255 && green == 0 && blue == 0) {
+     if (rgb_values[0] == 255 && rgb_values[1] == 0 && rgb_values[2] == 0) {
         result = "Class A";
-    } else if (red == 255 && green == 0 && blue == 255) {
+    } else if (rgb_values[0] == 255 && rgb_values[1] == 0 && rgb_values[2] == 255) {
         result = "Class B";
-    } else if (red == 255 && green == 255 && blue == 0) {
+    } else if (rgb_values[0] == 255 && rgb_values[1] == 255 && rgb_values[2] == 0) {
         result = "Class C";
-    } else if (red == 0 && green == 0 && blue == 255) {
+    } else if (rgb_values[0] == 0 && rgb_values[1] == 0 && rgb_values[2] == 255) {
         result = "Class D";
     } else {
-        result = "Unknown";
+        result = "background";
+    }
     }
     }
 }
