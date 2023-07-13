@@ -57,7 +57,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   void timer_callback();
  
-  //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_painting_pub_;
   rclcpp::Subscription<segmentation_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;

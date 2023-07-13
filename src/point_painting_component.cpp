@@ -21,7 +21,6 @@
 #include <point_painting/point_painting_component.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 
-
 //ros2
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
@@ -32,7 +31,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
-
 #include "segmentation_msg/msg/segmentation_info.hpp"
 
 
@@ -47,7 +45,6 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   const auto min_area_matrix = this->declare_parameter<std::vector<double>>("min_area_matrix");
   const auto max_area_matrix = this->declare_parameter<std::vector<double>>("max_area_matrix");
 
-  //callback
   using namespace std::chrono_literals;
   //timer_ = create_wall_timer(10ms, [this]() { timer_callback(); });  
   segmentation_sub_ = create_subscription<segmentation_msg::msg::SegmentationInfo>(
@@ -87,8 +84,8 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & se
     num_fields, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1,
     sensor_msgs::msg::PointField::FLOAT32, "z", 1, sensor_msgs::msg::PointField::FLOAT32, 
     "RED_BUOY ", 1,sensor_msgs::msg::PointField::FLOAT32, 
-    "YELLO_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
-    "BLOCK_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
+    "YELLOW_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
+    "BLACK_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
     "DOCK", 1, sensor_msgs::msg::PointField::FLOAT32
     );
   sensor_pointcloud_msg.point_step = num_fields * sizeof(float);
@@ -146,44 +143,45 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   //点群::LiDAR座標系⇨カメラ行列
   tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-  std::vector<uint8_t> seg_img = SegmentationInfo.segmentation.data;
+  std::vector<std::string> seg_map = SegmentationInfo.detected_classes;
+
+
+  sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(painted_pointcloud_msg, "RED_BUOY");
+  sensor_msgs::PointCloud2Iterator<float> iter_yellow_buoy(painted_pointcloud_msg, "YELLOW_BUOY");
+  sensor_msgs::PointCloud2Iterator<float> iter_black_buoy(painted_pointcloud_msg, "BLACK_BUOY");
+  sensor_msgs::PointCloud2Iterator<float> iter_dock(painted_pointcloud_msg, "DOCK");
 
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
        iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
-       iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z ) {
+       iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, 
+       ++iter_red_buoy, ++iter_yellow_buoy, ++iter_black_buoy, ++iter_dock) {
     //カメラ座標⇨画像座標系
     Eigen::Vector4d projected_point = camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
     Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
     
     int target_row = int(normalized_projected_point.y()) ;
     int target_col = int(normalized_projected_point.x()) ; 
-    const size_t target_index = target_row * width + target_col*3;
+    const size_t target_index = target_row * width + target_col ;
     if (
       target_index <= 0 || target_index >= width*height
      ) {
       continue;
     } else {
-    std::vector<uint8_t> rgb_values(3);
-    for (size_t i = 0; i < 3; ++i) {
-      rgb_values[i] = seg_img[target_index+i];
+      std::string class_name = seg_map[target_index] ;
+      if (class_name == "RED_BUOY") {
+        *iter_red_buoy = 1.0 ; 
+      } else if (class_name == "YELLOW_BUOY") {
+        *iter_yellow_buoy = 1.0 ;
+      } else if (class_name == "BLACK_BUOY") {
+        *iter_black_buoy = 1.0 ;
+      } else if (class_name == "DOCK") {
+        *iter_dock = 1.0 ;
+      } else {
+      }
     }
-
-    //withではなくif文で画像のRGB値を見る感じ
-    std::string result;
-    if (rgb_values[0] == 255 && rgb_values[1] == 0 && rgb_values[2] == 0) {
-        result = "Class A";
-    } else if (rgb_values[0] == 255 && rgb_values[1] == 0 && rgb_values[2] == 255) {
-        result = "Class B";
-    } else if (rgb_values[0] == 255 && rgb_values[1] == 255 && rgb_values[2] == 0) {
-        result = "Class C";
-    } else if (rgb_values[0] == 0 && rgb_values[1] == 0 && rgb_values[2] == 255) {
-        result = "Class D";
-    } else {
-        result = "background";
-    }
-    }
-    }
+  }
 }
+
 
 std::optional<geometry_msgs::msg::TransformStamped> PointPaintingFusionComponent::getTransformStamped(
   const tf2_ros::Buffer & tf_buffer, const std::string & target_frame_id,
@@ -199,6 +197,6 @@ std::optional<geometry_msgs::msg::TransformStamped> PointPaintingFusionComponent
     return std::nullopt;
   }
 }
-
 }
+
 RCLCPP_COMPONENTS_REGISTER_NODE(point_painting::PointPaintingFusionComponent)

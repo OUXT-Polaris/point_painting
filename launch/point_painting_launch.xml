@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="point_painting" exec="point_painting_node" name="point_painting_node" output="screen"/>
+</launch>
