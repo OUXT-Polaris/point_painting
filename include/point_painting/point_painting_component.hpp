@@ -27,7 +27,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include "segmentation_msg/msg/segmentation_info.hpp"
-
+#include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 
 namespace point_painting
 {
@@ -39,9 +39,8 @@ public:
  
 private:
   tf2_ros::Buffer tfBuffer;
-
-  segmentation_msg::msg::SegmentationInfo segmentationinfo_; 
-  sensor_msgs::msg::CameraInfo  camera_info_;
+  std::vector<std::string> class_names_;
+  std::vector<double> pointcloud_range_;
 
   void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
   void fuseOnSingleImage(
@@ -49,22 +48,24 @@ private:
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info
   );
-  
   std::optional<geometry_msgs::msg::TransformStamped> getTransformStamped(
   const tf2_ros::Buffer & tf_buffer, const std::string & target_frame_id,
-  const std::string & source_frame_id, const rclcpp::Time & time);
-
+  const std::string & source_frame_id, const rclcpp::Time & time
+  );
+  
+  //timer
   rclcpp::TimerBase::SharedPtr timer_;
   void timer_callback();
- 
+  //ros2 message
+  segmentation_msg::msg::SegmentationInfo segmentationinfo_; 
+  sensor_msgs::msg::CameraInfo  camera_info_;
+  //Publisher
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_painting_pub_;
+  //Subscriber
   rclcpp::Subscription<segmentation_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
-
-  std::vector<std::string> class_names_;
-  std::vector<double> pointcloud_range;
-
+  //callback
   void segmentation_callback(const segmentation_msg::msg::SegmentationInfo &  segmentationinfo);
   void pointcloud_callback(const sensor_msgs::msg::PointCloud2 &  pointcloud);
   void camera_info_callback(const sensor_msgs::msg::CameraInfo  & camera_info);

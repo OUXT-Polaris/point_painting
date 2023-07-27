@@ -41,7 +41,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
 {  
   //param
   class_names_ = this->declare_parameter<std::vector<std::string>>("class_names");
-  pointcloud_range = this->declare_parameter<std::vector<double>>("point_cloud_range");
+  pointcloud_range_ = this->declare_parameter<std::vector<double>>("point_cloud_range");
   const auto min_area_matrix = this->declare_parameter<std::vector<double>>("min_area_matrix");
   const auto max_area_matrix = this->declare_parameter<std::vector<double>>("max_area_matrix");
 
@@ -99,8 +99,8 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & se
        iter_x != iter_x.end();
        ++iter_x, ++iter_y, ++iter_z, ++iter_painted_x, ++iter_painted_y, ++iter_painted_z) {
     if (
-      *iter_x <= pointcloud_range.at(0) || *iter_x >= pointcloud_range.at(3) ||
-      *iter_y <= pointcloud_range.at(1) || *iter_y >= pointcloud_range.at(4)) {
+      *iter_x <= pointcloud_range_.at(0) || *iter_x >= pointcloud_range_.at(3) ||
+      *iter_y <= pointcloud_range_.at(1) || *iter_y >= pointcloud_range_.at(4)) {
       continue;
     } else {
       *iter_painted_x = *iter_x;
@@ -199,4 +199,6 @@ std::optional<geometry_msgs::msg::TransformStamped> PointPaintingFusionComponent
 }
 }
 
+
+#include "rclcpp_components/register_node_macro.hpp"
 RCLCPP_COMPONENTS_REGISTER_NODE(point_painting::PointPaintingFusionComponent)

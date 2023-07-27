@@ -1,3 +1,7 @@
+<?xml version="1.0"?>
 <launch>
-  <node pkg="point_painting" exec="point_painting_node" name="point_painting_node" output="screen"/>
+  <node_container pkg="rclcpp_components" exec="component_container" name="point_painting_node" namespace="point_painting" >
+    <composable_node pkg="point_painting" plugin="point_painting_component::PointPaintingFusionComponent" name="point_painting_node" namespace="point_painting">
+    </composable_node>
+  </node_container>
 </launch>

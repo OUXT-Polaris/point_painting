@@ -13,6 +13,8 @@ find_package(ament_cmake_auto REQUIRED)
 find_package(segmentation_msg REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 ament_auto_find_build_dependencies()
 
@@ -20,6 +22,12 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# launchファイルをインストール（ament_package_indexが探せる場所に置く）
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 # Create the component target
 ament_auto_add_library(${PROJECT_NAME}-${COMP_NAME_LOWER}_component SHARED
