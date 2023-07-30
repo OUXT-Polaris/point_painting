@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-  <node_container pkg="rclcpp_components" exec="component_container" name="point_painting_node" namespace="point_painting" >
-    <composable_node pkg="point_painting" plugin="point_painting_component::PointPaintingFusionComponent" name="point_painting_node" namespace="point_painting">
+  <node_container pkg="rclcpp_components" exec="component_container_mt" name="point_painting_container" namespace="point_painting" >
+    <composable_node pkg="point_painting" plugin="point_painting::PointPaintingFusionComponent" name="point_painting_node" namespace="point_painting">
+      <param from="config/pointpainting_config.yaml" />
     </composable_node>
   </node_container>
 </launch>
+
+<!-- 書き方についてはhttps://docs.ros.org/en/humble/How-To-Guides/Launching-composable-nodes.html?highlight=xml#python-xml-or-yaml-which-should-i-use -->

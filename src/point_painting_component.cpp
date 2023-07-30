@@ -40,10 +40,28 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
 : Node("pointpainting_fusion", options), tfBuffer(get_clock()) 
 {  
   //param
-  class_names_ = this->declare_parameter<std::vector<std::string>>("class_names");
-  pointcloud_range_ = this->declare_parameter<std::vector<double>>("point_cloud_range");
-  const auto min_area_matrix = this->declare_parameter<std::vector<double>>("min_area_matrix");
-  const auto max_area_matrix = this->declare_parameter<std::vector<double>>("max_area_matrix");
+  // class_names_ = this->declare_parameter<std::vector<std::string>>("class_names");
+  // pointcloud_range_ = this->declare_parameter<std::vector<double>>("point_cloud_range");
+  // const auto min_area_matrix = this->declare_parameter<std::vector<double>>("min_area_matrix");
+  // const auto max_area_matrix = this->declare_parameter<std::vector<double>>("max_area_matrix");
+  // const auto segmentation_topic = this->declare_parameter("/SegmentationInfo");
+  
+  //param
+  declare_parameter<std::vector<std::string>>("class_names");
+  declare_parameter<std::vector<double>>("point_cloud_range");
+  declare_parameter<std::vector<double>>("min_area_matrix");
+  declare_parameter<std::vector<double>>("max_area_matrix");
+  declare_parameter("segmentation_topic","/SegmentationInfo");
+  declare_parameter("camera_info_topic","/CameraInfo");
+  declare_parameter("point_cloud_topic","/point_cloud");
+
+  class_names_ = get_parameter("class_names").as_string_array();
+  pointcloud_range_ = get_parameter("point_cloud_range").as_double_array();
+  const auto min_area_matrix = get_parameter("min_area_matrix").as_double_array();
+  const auto max_area_matrix = get_parameter("max_area_matrix").as_double_array();
+  const auto segmentation_topic = get_parameter("segmentation_topic").as_string();
+  const auto camera_info_topic = get_parameter("camera_info_topic").as_string();
+  const auto point_cloud_topic = get_parameter("point_cloud_topic").as_string();
 
   using namespace std::chrono_literals;
   //timer_ = create_wall_timer(10ms, [this]() { timer_callback(); });  
@@ -52,7 +70,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   pointcloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
     "/pointcloud",10, [this](const sensor_msgs::msg::PointCloud2 & point){pointcloud_callback(point);});
   camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
-    "camera_info_topic", 10, [this](const sensor_msgs::msg::CameraInfo & camera_info_msg){camera_info_callback(camera_info_msg);});
+    "/CameraInfo", 10, [this](const sensor_msgs::msg::CameraInfo & camera_info_msg){camera_info_callback(camera_info_msg);});
 }
 
 void PointPaintingFusionComponent::segmentation_callback(const segmentation_msg::msg::SegmentationInfo & seg_msg)
@@ -61,11 +79,13 @@ void PointPaintingFusionComponent::segmentation_callback(const segmentation_msg:
 } 
 void PointPaintingFusionComponent::camera_info_callback(const sensor_msgs::msg::CameraInfo  & camera_info_msg)
 {
+  RCLCPP_INFO(this->get_logger(), "カメラパラメータ");
   camera_info_ = camera_info_msg;
 }
 void PointPaintingFusionComponent::pointcloud_callback(const sensor_msgs::msg::PointCloud2 &  pointcloud_msg)
 {
   sensor_msgs::msg::PointCloud2 pointcloud = pointcloud_msg;
+  RCLCPP_INFO(this->get_logger(), "点群処理");
   preprocess(pointcloud);
   fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
 }
@@ -200,5 +220,5 @@ std::optional<geometry_msgs::msg::TransformStamped> PointPaintingFusionComponent
 }
 
 
-#include "rclcpp_components/register_node_macro.hpp"
+#include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(point_painting::PointPaintingFusionComponent)

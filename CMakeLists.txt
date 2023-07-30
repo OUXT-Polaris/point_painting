@@ -35,8 +35,9 @@ ament_auto_add_library(${PROJECT_NAME}-${COMP_NAME_LOWER}_component SHARED
 )
 target_compile_definitions(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
     PRIVATE ${PROJECT_NAME}_BUILDING_DLL)
+
 rclcpp_components_register_nodes(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
-    "${PROJECT_NAME}::${COMP_NAME}Component")
+    "point_painting::PointPaintingFusionComponent")
 
 # Create the executor target
 ament_auto_add_executable(${PROJECT_NAME}-${COMP_NAME_LOWER}_node
