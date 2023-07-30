@@ -26,8 +26,10 @@ endif()
 # launchファイルをインストール（ament_package_indexが探せる場所に置く）
 install(DIRECTORY
   launch
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
+
 
 # Create the component target
 ament_auto_add_library(${PROJECT_NAME}-${COMP_NAME_LOWER}_component SHARED
@@ -38,6 +40,7 @@ target_compile_definitions(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
 
 rclcpp_components_register_nodes(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
     "point_painting::PointPaintingFusionComponent")
+
 
 # Create the executor target
 ament_auto_add_executable(${PROJECT_NAME}-${COMP_NAME_LOWER}_node

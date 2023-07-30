@@ -2,7 +2,7 @@
   ros__parameters:
     # point_painting_fusion_class
     class_names: ["RED_BUOY","YELLO_BUOY","BLOCK_BUOY","DOCK"]
-    
+    # point painting range
     point_cloud_range: [-76.8, -76.8, -3.0, 76.8, 76.8, 5.0]
     min_area_matrix : [30.0,90.0]
     max_area_matrix : [30.0,90.0]
@@ -10,3 +10,5 @@
     segmentation_topic : /wamv/sensors/cameras/ball_shooter_camera_sensor/camera_info
     camera_info_topic : /wamv/sensors/cameras/ball_shooter_camera_sensor/optical/camera_info
     point_cloud_topic : /wamv/sensors/lidars/lidar_wamv_sensor/points
+    #debug_mode
+    debug : true
