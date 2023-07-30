@@ -11,44 +11,25 @@ endif()
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
 
+find_package(segmentation_msg REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
-#追加部分
-# find_package(
-#     std_msgs
-#     sensor_msgs
-#     message_generation
-# )
-
-# generate_messages(
-#     DEPENDENCIES
-#     std_msgs
-#     sensor_msgs
-# )
-
-find_package(rosidl_default_generators REQUIRED)
-
-set(msg_files
-  "msg/SegmentationInfo.msg"
-)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${msg_files}
-)
-ament_export_dependencies(rosidl_default_runtime)
-#ここまで
 
 ament_auto_find_build_dependencies()
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # uncomment the line when a copyright and license is not present in all source files
-  #set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # uncomment the line when this package is not in a git repo
-  #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# launchファイルをインストール（ament_package_indexが探せる場所に置く）
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 # Create the component target
 ament_auto_add_library(${PROJECT_NAME}-${COMP_NAME_LOWER}_component SHARED
@@ -56,8 +37,9 @@ ament_auto_add_library(${PROJECT_NAME}-${COMP_NAME_LOWER}_component SHARED
 )
 target_compile_definitions(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
     PRIVATE ${PROJECT_NAME}_BUILDING_DLL)
+
 rclcpp_components_register_nodes(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
-    "${PROJECT_NAME}::${COMP_NAME}Component")
+    "point_painting::PointPaintingFusionComponent")
 
 # Create the executor target
 ament_auto_add_executable(${PROJECT_NAME}-${COMP_NAME_LOWER}_node

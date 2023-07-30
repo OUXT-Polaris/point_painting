@@ -21,8 +21,13 @@
 #include <point_painting/visibility_control.h>
 #include <rclcpp/rclcpp.hpp>
 #include <memory>  
+#include <optional>
+#include <tf2_ros/buffer.h>
+
 #include <sensor_msgs/msg/point_cloud2.hpp>
-//#include <perception_msgs/msg/tracking2_d.hpp> // Tracking2D in pub_
+#include <sensor_msgs/msg/camera_info.hpp>
+#include "segmentation_msg/msg/segmentation_info.hpp"
+#include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 
 namespace point_painting
 {
@@ -31,19 +36,39 @@ class PointPaintingFusionComponent : public rclcpp::Node
 public:
   POINTPAINTING_FUSIONCOMPONENT_PUBLIC
   explicit PointPaintingFusionComponent(const rclcpp::NodeOptions & options);
-  virtual ~PointPaintingFusionComponent();
-
+ 
 private:
+  tf2_ros::Buffer tfBuffer;
+  std::vector<std::string> class_names_;
+  std::vector<double> pointcloud_range_;
+
   void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
   void fuseOnSingleImage(
-  //const SegmentationInfo & SegmentationInfo,
-  // const sensor_msgs::msg::CameraInfo & camera_info,
-  // sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg
+  const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
+  sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
+  const sensor_msgs::msg::CameraInfo & camera_info
   );
-  void timer_callback();
+  std::optional<geometry_msgs::msg::TransformStamped> getTransformStamped(
+  const tf2_ros::Buffer & tf_buffer, const std::string & target_frame_id,
+  const std::string & source_frame_id, const rclcpp::Time & time
+  );
+  
+  //timer
   rclcpp::TimerBase::SharedPtr timer_;
-  //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+  void timer_callback();
+  //ros2 message
+  segmentation_msg::msg::SegmentationInfo segmentationinfo_; 
+  sensor_msgs::msg::CameraInfo  camera_info_;
+  //Publisher
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_painting_pub_;
+  //Subscriber
+  rclcpp::Subscription<segmentation_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
+  //callback
+  void segmentation_callback(const segmentation_msg::msg::SegmentationInfo &  segmentationinfo);
+  void pointcloud_callback(const sensor_msgs::msg::PointCloud2 &  pointcloud);
+  void camera_info_callback(const sensor_msgs::msg::CameraInfo  & camera_info);
 };
 }  
 #endif 
