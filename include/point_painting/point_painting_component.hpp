@@ -38,6 +38,7 @@ public:
   explicit PointPaintingFusionComponent(const rclcpp::NodeOptions & options);
  
 private:
+  bool debug;
   tf2_ros::Buffer tfBuffer;
   std::vector<std::string> class_names_;
   std::vector<double> pointcloud_range_;
@@ -61,6 +62,8 @@ private:
   sensor_msgs::msg::CameraInfo  camera_info_;
   //Publisher
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_painting_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr preprocess_debug_pub_;
+  
   //Subscriber
   rclcpp::Subscription<segmentation_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;

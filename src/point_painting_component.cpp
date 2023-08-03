@@ -49,6 +49,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   declare_parameter("point_cloud_topic","/point_cloud");
   declare_parameter("debug",false);
 
+  debug = get_parameter("debug").as_bool();
   class_names_ = get_parameter("class_names").as_string_array();
   pointcloud_range_ = get_parameter("point_cloud_range").as_double_array();
   const auto min_area_matrix = get_parameter("min_area_matrix").as_double_array();
@@ -56,17 +57,20 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   const auto segmentation_topic = get_parameter("segmentation_topic").as_string();
   const auto camera_info_topic = get_parameter("camera_info_topic").as_string();
   const auto point_cloud_topic = get_parameter("point_cloud_topic").as_string();
-  const auto debug = get_parameter("debug").as_bool();
 
+  //piblisher
   using namespace std::chrono_literals;
   point_painting_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("point_paint", 10);
+  if (debug){
+    preprocess_debug_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("preprocess_debug", 10);
+  }
+  //subscriber
   segmentation_sub_ = create_subscription<segmentation_msg::msg::SegmentationInfo>(
     segmentation_topic, 1, [this](const segmentation_msg::msg::SegmentationInfo seg_msg) { segmentation_callback(seg_msg); });
   camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
     camera_info_topic, 10, [this](const sensor_msgs::msg::CameraInfo & camera_info_msg){camera_info_callback(camera_info_msg);});
   pointcloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
     point_cloud_topic,10, [this](const sensor_msgs::msg::PointCloud2 & point){pointcloud_callback(point);});
-
 }
 
 void PointPaintingFusionComponent::segmentation_callback(const segmentation_msg::msg::SegmentationInfo & seg_msg)
@@ -75,27 +79,26 @@ void PointPaintingFusionComponent::segmentation_callback(const segmentation_msg:
 } 
 void PointPaintingFusionComponent::camera_info_callback(const sensor_msgs::msg::CameraInfo  & camera_info_msg)
 {
-  RCLCPP_INFO(this->get_logger(), "カメラパラメータ");
   camera_info_ = camera_info_msg;
 }
 void PointPaintingFusionComponent::pointcloud_callback(const sensor_msgs::msg::PointCloud2 &  pointcloud_msg)
 {
   sensor_msgs::msg::PointCloud2 pointcloud = pointcloud_msg;
-  RCLCPP_INFO(this->get_logger(), "点群処理");
   preprocess(pointcloud);
   //fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
 }
 
 //カメラの視野内に点群を制限
-void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & sensor_pointcloud_msg)
+void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg)
 {
   sensor_msgs::msg::PointCloud2 tmp;
-  tmp = sensor_pointcloud_msg;
-  sensor_pointcloud_msg.width = tmp.width;
-  sensor_msgs::PointCloud2Modifier pcd_modifier(sensor_pointcloud_msg); 
-  pcd_modifier.clear(); 
-  int num_fields = 7;
-  //ここで新しいポイントクラウドのフィールドを設定する
+  tmp = painted_pointcloud_msg;
+  sensor_msgs::PointCloud2Modifier pcd_modifier(painted_pointcloud_msg);
+  pcd_modifier.clear();
+  pcd_modifier.reserve(tmp.width);
+  painted_pointcloud_msg.width = tmp.width;
+  painted_pointcloud_msg.height = tmp.height;
+  constexpr int num_fields = 7;
   pcd_modifier.setPointCloud2Fields(
     num_fields, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1,
     sensor_msgs::msg::PointField::FLOAT32, "z", 1, sensor_msgs::msg::PointField::FLOAT32, 
@@ -104,12 +107,12 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & se
     "BLACK_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
     "DOCK", 1, sensor_msgs::msg::PointField::FLOAT32
     );
-  sensor_pointcloud_msg.point_step = num_fields * sizeof(float);
-  const auto painted_point_step = sensor_pointcloud_msg.point_step;
+  painted_pointcloud_msg.point_step = num_fields * sizeof(float);
+  const auto painted_point_step = painted_pointcloud_msg.point_step;
   size_t j = 0;
-  sensor_msgs::PointCloud2Iterator<float> iter_painted_x(sensor_pointcloud_msg, "x");
-  sensor_msgs::PointCloud2Iterator<float> iter_painted_y(sensor_pointcloud_msg, "y");
-  sensor_msgs::PointCloud2Iterator<float> iter_painted_z(sensor_pointcloud_msg, "z");
+  sensor_msgs::PointCloud2Iterator<float> iter_painted_x(painted_pointcloud_msg, "x");
+  sensor_msgs::PointCloud2Iterator<float> iter_painted_y(painted_pointcloud_msg, "y");
+  sensor_msgs::PointCloud2Iterator<float> iter_painted_z(painted_pointcloud_msg, "z");
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(tmp, "x"), iter_y(tmp, "y"),
        iter_z(tmp, "z");
        iter_x != iter_x.end();
@@ -117,6 +120,7 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & se
     if (
       *iter_x <= pointcloud_range_.at(0) || *iter_x >= pointcloud_range_.at(3) ||
       *iter_y <= pointcloud_range_.at(1) || *iter_y >= pointcloud_range_.at(4)) {
+  // 点群の行数を再定義
       continue;
     } else {
       *iter_painted_x = *iter_x;
@@ -125,9 +129,12 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & se
       j += painted_point_step;
     }
   }
-  sensor_pointcloud_msg.data.resize(j);
-  sensor_pointcloud_msg.width = static_cast<uint32_t>(sensor_pointcloud_msg.data.size() / sensor_pointcloud_msg.height /sensor_pointcloud_msg.point_step);
-  sensor_pointcloud_msg.row_step =static_cast<uint32_t>(sensor_pointcloud_msg.data.size() / sensor_pointcloud_msg.height);
+  painted_pointcloud_msg.data.resize(j); //バッファのサイズを最適化
+  painted_pointcloud_msg.width = static_cast<uint32_t>(painted_pointcloud_msg.data.size() / painted_pointcloud_msg.height / painted_pointcloud_msg.point_step);
+  painted_pointcloud_msg.row_step = static_cast<uint32_t>(painted_pointcloud_msg.data.size() / painted_pointcloud_msg.height);
+  if (debug){
+    preprocess_debug_pub_->publish(painted_pointcloud_msg);
+  }
 }
 
 
@@ -195,6 +202,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
       } else {
       }
     }
+    point_painting_pub_->publish(transformed_pointcloud);
   }
 }
 
@@ -214,7 +222,6 @@ std::optional<geometry_msgs::msg::TransformStamped> PointPaintingFusionComponent
   }
 }
 }
-
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(point_painting::PointPaintingFusionComponent)
