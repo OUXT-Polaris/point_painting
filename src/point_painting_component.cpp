@@ -144,8 +144,8 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   const sensor_msgs::msg::CameraInfo & camera_info
 )
 {
-  uint32_t width = SegmentationInfo.segmentation.width;
-  uint32_t height = SegmentationInfo.segmentation.height;
+  // uint32_t width = SegmentationInfo.segmentation.width;
+  // uint32_t height = SegmentationInfo.segmentation.height;
 
   geometry_msgs::msg::TransformStamped transform_stamped;
   {
@@ -166,7 +166,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   //点群::LiDAR座標系⇨カメラ行列
   tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-  std::vector<std::string> seg_map = SegmentationInfo.detected_classes;
+  //std::vector<std::string> seg_map = SegmentationInfo.detected_classes;
 
 
   sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(painted_pointcloud_msg, "RED_BUOY");
@@ -184,24 +184,25 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     
     int target_row = int(normalized_projected_point.y()) ;
     int target_col = int(normalized_projected_point.x()) ; 
-    const size_t target_index = target_row * width + target_col ;
-    if (
-      target_index <= 0 || target_index >= width*height
-     ) {
-      continue;
-    } else {
-      std::string class_name = seg_map[target_index] ;
-      if (class_name == "RED_BUOY") {
-        *iter_red_buoy = 1.0 ; 
-      } else if (class_name == "YELLOW_BUOY") {
-        *iter_yellow_buoy = 1.0 ;
-      } else if (class_name == "BLACK_BUOY") {
-        *iter_black_buoy = 1.0 ;
-      } else if (class_name == "DOCK") {
-        *iter_dock = 1.0 ;
-      } else {
-      }
-    }
+    //const size_t target_index = target_row * width + target_col ;
+    *iter_red_buoy = 1.0 ; 
+    // if (
+      //target_index <= 0 || target_index >= width*height
+    //  ) {
+    //   continue;
+    // } else {
+      // std::string class_name = seg_map[target_index] ;
+      // if (class_name == "RED_BUOY") {
+      //   *iter_red_buoy = 1.0 ; 
+      // } else if (class_name == "YELLOW_BUOY") {
+      //   *iter_yellow_buoy = 1.0 ;
+      // } else if (class_name == "BLACK_BUOY") {
+      //   *iter_black_buoy = 1.0 ;
+      // } else if (class_name == "DOCK") {
+      //   *iter_dock = 1.0 ;
+      // } else {
+      // }
+    // }
     point_painting_pub_->publish(transformed_pointcloud);
   }
 }

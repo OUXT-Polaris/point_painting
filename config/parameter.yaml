@@ -1,0 +1,31 @@
+pointpainting_config_area :
+  point_cloud_range: {
+    type: double_array,
+    default_value: "",
+    read_only: true,
+    description: "point_cloud",
+    description: "Name of the sensor used as prefix for interfaces if there are no individual interface names defined.",
+  }
+  min_area_matrix: {
+    type: double_array,
+    default_value: "",
+    read_only: true,
+    description: "test code generation for int",
+    description: "Name of the sensor used as prefix for interfaces if there are no individual interface names defined.",
+  }
+  max_area_matrix: {
+    type: double_array,
+    default_value: "",
+    read_only: true,
+    description: "test code generation for int",
+    description: "Name of the sensor used as prefix for interfaces if there are no individual interface names defined.",
+  }
+  point_cloud_range: {
+    type: double_array,
+    default_value: "",
+    description: "Name of the sensor used as prefix for interfaces if there are no individual interface names defined.",
+  }
+
+  point_cloud_range: [-76.8, -76.8, -3.0, 76.8, 76.8, 5.0]
+  min_area_matrix : [30.0,90.0]
+  max_area_matrix : [30.0,90.0]
