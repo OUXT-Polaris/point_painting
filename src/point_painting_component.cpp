@@ -155,10 +155,15 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   try
   {
       cv_bridge::CvImagePtr cv_ptr;
-      cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);//"mono8");
+      cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);
       cv::Mat seg_map = cv_ptr->image;
-      cv::imshow("Received Image", seg_map);
-      cv::waitKey(1);
+      if (debug){
+        cv::imshow("Received Image", seg_map);
+        cv::waitKey(1);
+        uchar pixel_value = seg_map.at<uchar>(2,1);
+        RCLCPP_INFO(this->get_logger(), "Pixel value at %d",pixel_value);
+      }
+     
   }
   catch (cv_bridge::Exception& e)
   {
