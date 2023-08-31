@@ -33,6 +33,11 @@
 #include <sensor_msgs/msg/image.hpp>
 #include "segmentation_msg/msg/segmentation_info.hpp"
 
+//opencv
+#include <sensor_msgs/image_encodings.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
 
 namespace point_painting
 {
@@ -60,7 +65,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
 
   //piblisher
   using namespace std::chrono_literals;
-  point_painting_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("point_paint", 10);
+  point_painting_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("point_painting", 10);
   if (debug){
     preprocess_debug_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("preprocess_debug", 10);
   }
@@ -85,7 +90,7 @@ void PointPaintingFusionComponent::pointcloud_callback(const sensor_msgs::msg::P
 {
   sensor_msgs::msg::PointCloud2 pointcloud = pointcloud_msg;
   preprocess(pointcloud);
-  //fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
+  fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
 }
 
 //カメラの視野内に点群を制限
@@ -144,9 +149,22 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   const sensor_msgs::msg::CameraInfo & camera_info
 )
 {
-  // uint32_t width = SegmentationInfo.segmentation.width;
-  // uint32_t height = SegmentationInfo.segmentation.height;
-
+  
+  uint32_t width = SegmentationInfo.segmentation.width;
+  uint32_t height = SegmentationInfo.segmentation.height;
+  try
+  {
+      cv_bridge::CvImagePtr cv_ptr;
+      cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);//"mono8");
+      cv::Mat seg_map = cv_ptr->image;
+      cv::imshow("Received Image", seg_map);
+      cv::waitKey(1);
+  }
+  catch (cv_bridge::Exception& e)
+  {
+      RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+  }
+  
   geometry_msgs::msg::TransformStamped transform_stamped;
   {
     const auto transform_stamped_optional = getTransformStamped(
@@ -166,8 +184,6 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   //点群::LiDAR座標系⇨カメラ行列
   tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-  //std::vector<std::string> seg_map = SegmentationInfo.detected_classes;
-
 
   sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(painted_pointcloud_msg, "RED_BUOY");
   sensor_msgs::PointCloud2Iterator<float> iter_yellow_buoy(painted_pointcloud_msg, "YELLOW_BUOY");
@@ -184,26 +200,26 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     
     int target_row = int(normalized_projected_point.y()) ;
     int target_col = int(normalized_projected_point.x()) ; 
-    //const size_t target_index = target_row * width + target_col ;
-    *iter_red_buoy = 1.0 ; 
+    const size_t target_index = target_row * width + target_col ;
+    // //*iter_red_buoy = 1.0 ; 
     // if (
-      //target_index <= 0 || target_index >= width*height
+    //   target_index <= 0 || target_index >= width*height
     //  ) {
     //   continue;
     // } else {
-      // std::string class_name = seg_map[target_index] ;
-      // if (class_name == "RED_BUOY") {
-      //   *iter_red_buoy = 1.0 ; 
-      // } else if (class_name == "YELLOW_BUOY") {
-      //   *iter_yellow_buoy = 1.0 ;
-      // } else if (class_name == "BLACK_BUOY") {
-      //   *iter_black_buoy = 1.0 ;
-      // } else if (class_name == "DOCK") {
-      //   *iter_dock = 1.0 ;
-      // } else {
-      // }
+    //   int class_name = seg_map[target_index] ;
+    //   if (class_name == 0) {
+    //     *iter_red_buoy = 1.0 ; 
+    //   } else if (class_name == 1) {
+    //     *iter_yellow_buoy = 1.0 ;
+    //   } else if (class_name == 2) {
+    //     *iter_black_buoy = 1.0 ;
+    //   } else if (class_name == 3) {
+    //     *iter_dock = 1.0 ;
+    //   } else {
+    //   }
     // }
-    point_painting_pub_->publish(transformed_pointcloud);
+    // point_painting_pub_->publish(transformed_pointcloud);
   }
 }
 

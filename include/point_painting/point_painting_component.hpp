@@ -29,6 +29,11 @@
 #include "segmentation_msg/msg/segmentation_info.hpp"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 
+
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+
 namespace point_painting
 {
 class PointPaintingFusionComponent : public rclcpp::Node
