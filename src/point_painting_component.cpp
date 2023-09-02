@@ -147,37 +147,48 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info
-)
+)getTransformStamped
 {
   
   uint32_t width = SegmentationInfo.segmentation.width;
   uint32_t height = SegmentationInfo.segmentation.height;
   try
   {
-      cv_bridge::CvImagePtr cv_ptr;
-      cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);
-      cv::Mat seg_map = cv_ptr->image;
-      if (debug){
-        cv::imshow("Received Image", seg_map);
-        cv::waitKey(1);
-        uchar pixel_value = seg_map.at<uchar>(2,1);
-        RCLCPP_INFO(this->get_logger(), "Pixel value at %d",pixel_value);
-      }
-     
+  cv_bridge::CvImagePtr cv_ptr;
+  cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);
+  cv::Mat seg_map = cv_ptr->image;
+  if (debug){
+    cv::imshow("Received Image", seg_map);
+    cv::waitKey(1);
+    uchar pixel_value = seg_map.at<uchar>(2,1);
+    RCLCPP_INFO(this->get_logger(), "Pixel value at %d",pixel_value);
+  }
   }
   catch (cv_bridge::Exception& e)
   {
       RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+      return ;
   }
   
+
+  tf2::TimePoint time_point = tf2::TimePoint(
+  std::chrono::seconds(point.header.stamp.sec) +
+  std::chrono::nanoseconds(point.header.stamp.nanosec));
+  try {
+    geometry_msgs::msg::TransformStamped transform_stamped = buffer_.lookupTransform(
+      target_frame_id, point.header.frame_id, time_point, tf2::durationFromSec(1.0));
+  } catch (...) {
+      return boost::none;
+    }
+
   geometry_msgs::msg::TransformStamped transform_stamped;
   {
     const auto transform_stamped_optional = getTransformStamped(
-      tfBuffer, camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id, camera_info.header.stamp);
+      tfBuffer, camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id, camera_info.header.stamp);//1つめの引数おかしいっぽい //tfBufferの値がない
     if (!transform_stamped_optional) {
       return;
     }
-    transform_stamped = transform_stamped_optional.value();
+    transform_stamped = transform_stamped_optional.value();    
   }
 
   Eigen::Matrix4d camera_projection;
@@ -187,6 +198,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     camera_info.p.at(11);
   
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
+
   //点群::LiDAR座標系⇨カメラ行列
   tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
 
@@ -206,25 +218,25 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     int target_row = int(normalized_projected_point.y()) ;
     int target_col = int(normalized_projected_point.x()) ; 
     const size_t target_index = target_row * width + target_col ;
-    // //*iter_red_buoy = 1.0 ; 
-    // if (
-    //   target_index <= 0 || target_index >= width*height
-    //  ) {
-    //   continue;
-    // } else {
-    //   int class_name = seg_map[target_index] ;
-    //   if (class_name == 0) {
-    //     *iter_red_buoy = 1.0 ; 
-    //   } else if (class_name == 1) {
-    //     *iter_yellow_buoy = 1.0 ;
-    //   } else if (class_name == 2) {
-    //     *iter_black_buoy = 1.0 ;
-    //   } else if (class_name == 3) {
-    //     *iter_dock = 1.0 ;
-    //   } else {
-    //   }
-    // }
-    // point_painting_pub_->publish(transformed_pointcloud);
+    //*iter_red_buoy = 1.0 ; 
+    if (
+      target_index <= 0 || target_index >= width*height
+     ) {
+      continue;
+    } else {
+      uchar class_name = seg_map.at<uchar>(target_row,target_col);
+      if (class_name == 0) {
+        *iter_red_buoy = 1.0 ; 
+      } else if (class_name == 1) {
+        *iter_yellow_buoy = 1.0 ;
+      } else if (class_name == 2) {
+        *iter_black_buoy = 1.0 ;
+      } else if (class_name == 3) {
+        *iter_dock = 1.0 ;
+      } else {
+      }
+    }
+    point_painting_pub_->publish(transformed_pointcloud);
   }
 }
 
