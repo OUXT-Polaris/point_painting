@@ -42,7 +42,7 @@
 namespace point_painting
 {
 PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOptions & options)
-: Node("pointpainting_fusion", options), tfBuffer(get_clock()) 
+: Node("pointpainting_fusion", options), buffer_(get_clock()),listener_(buffer_)
 {  
   //param
   declare_parameter<std::vector<std::string>>("class_names");
@@ -142,118 +142,100 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
   }
 }
 
-
 void PointPaintingFusionComponent::fuseOnSingleImage(
   const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info
-)getTransformStamped
-{
-  
+)
+{ 
   uint32_t width = SegmentationInfo.segmentation.width;
   uint32_t height = SegmentationInfo.segmentation.height;
-  try
-  {
-  cv_bridge::CvImagePtr cv_ptr;
-  cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);
-  cv::Mat seg_map = cv_ptr->image;
-  if (debug){
-    cv::imshow("Received Image", seg_map);
-    cv::waitKey(1);
-    uchar pixel_value = seg_map.at<uchar>(2,1);
-    RCLCPP_INFO(this->get_logger(), "Pixel value at %d",pixel_value);
-  }
-  }
-  catch (cv_bridge::Exception& e)
-  {
-      RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-      return ;
-  }
+  // cv_bridge::CvImagePtr cv_ptr;
+  // cv::Mat seg_map ;
+  // try
+  // {  
+  // cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);
+  // seg_map = cv_ptr->image;
+  // if (debug){
+  //   cv::imshow("Received Image", seg_map);
+  //   cv::waitKey(1);
+  //   uchar pixel_value = seg_map.at<uchar>(2,1);
+  //   RCLCPP_INFO(this->get_logger(), "Pixel value at %d",pixel_value);
+  // }
+  // }
+  // catch (cv_bridge::Exception& e)
+  // {
+  //     RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+  //     return ;
+  // }
   
 
-  tf2::TimePoint time_point = tf2::TimePoint(
-  std::chrono::seconds(point.header.stamp.sec) +
-  std::chrono::nanoseconds(point.header.stamp.nanosec));
-  try {
-    geometry_msgs::msg::TransformStamped transform_stamped = buffer_.lookupTransform(
-      target_frame_id, point.header.frame_id, time_point, tf2::durationFromSec(1.0));
-  } catch (...) {
-      return boost::none;
-    }
-
+  // geometry_msgs::msg::TransformStamped transform_stamped;
+  // {
+  //   const auto transform_stamped_optional = getTransformStamped(
+  //     tfBuffer, camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id,camera_info.header.stamp);
+  //   if (!transform_stamped_optional) {
+  //     return;
+  //   }
+  //   transform_stamped = transform_stamped_optional.value();    
+  // }
   geometry_msgs::msg::TransformStamped transform_stamped;
-  {
-    const auto transform_stamped_optional = getTransformStamped(
-      tfBuffer, camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id, camera_info.header.stamp);//1つめの引数おかしいっぽい //tfBufferの値がない
-    if (!transform_stamped_optional) {
-      return;
-    }
-    transform_stamped = transform_stamped_optional.value();    
-  }
-
-  Eigen::Matrix4d camera_projection;
-  camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
-    camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
-    camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
-    camera_info.p.at(11);
-  
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
-
-  //点群::LiDAR座標系⇨カメラ行列
-  tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-
-  sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(painted_pointcloud_msg, "RED_BUOY");
-  sensor_msgs::PointCloud2Iterator<float> iter_yellow_buoy(painted_pointcloud_msg, "YELLOW_BUOY");
-  sensor_msgs::PointCloud2Iterator<float> iter_black_buoy(painted_pointcloud_msg, "BLACK_BUOY");
-  sensor_msgs::PointCloud2Iterator<float> iter_dock(painted_pointcloud_msg, "DOCK");
-
-  for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
-       iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
-       iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, 
-       ++iter_red_buoy, ++iter_yellow_buoy, ++iter_black_buoy, ++iter_dock) {
-    //カメラ座標⇨画像座標系
-    Eigen::Vector4d projected_point = camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
-    Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
-    
-    int target_row = int(normalized_projected_point.y()) ;
-    int target_col = int(normalized_projected_point.x()) ; 
-    const size_t target_index = target_row * width + target_col ;
-    //*iter_red_buoy = 1.0 ; 
-    if (
-      target_index <= 0 || target_index >= width*height
-     ) {
-      continue;
-    } else {
-      uchar class_name = seg_map.at<uchar>(target_row,target_col);
-      if (class_name == 0) {
-        *iter_red_buoy = 1.0 ; 
-      } else if (class_name == 1) {
-        *iter_yellow_buoy = 1.0 ;
-      } else if (class_name == 2) {
-        *iter_black_buoy = 1.0 ;
-      } else if (class_name == 3) {
-        *iter_dock = 1.0 ;
-      } else {
-      }
-    }
+  try {  
+    transform_stamped = buffer_.lookupTransform(camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id,camera_info.header.stamp, rclcpp::Duration::from_seconds(0.5));
+    //点群::LiDAR座標系⇨カメラ行列
+    tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
     point_painting_pub_->publish(transformed_pointcloud);
-  }
-}
-
-
-std::optional<geometry_msgs::msg::TransformStamped> PointPaintingFusionComponent::getTransformStamped(
-  const tf2_ros::Buffer & tf_buffer, const std::string & target_frame_id,
-  const std::string & source_frame_id, const rclcpp::Time & time)
-  {
-  try {
-    geometry_msgs::msg::TransformStamped transform_stamped;
-    transform_stamped = tf_buffer.lookupTransform(
-      target_frame_id, source_frame_id, time, rclcpp::Duration::from_seconds(0.5));
-    return transform_stamped;
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("image_projection_based_fusion"), ex.what());
-    return std::nullopt;
+    // return std::nullopt;
   }
+
+
+
+
+  // Eigen::Matrix4d camera_projection;
+  // camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
+  //   camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
+  //   camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
+  //   camera_info.p.at(11);
+  
+  // sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(painted_pointcloud_msg, "");
+  // sensor_msgs::PointCloud2Iterator<float> iter_yellow_buoy(painted_pointcloud_msg, "YELLOW_BUOY");
+  // sensor_msgs::PointCloud2Iterator<float> iter_black_buoy(painted_pointcloud_msg, "BLACK_BUOY");
+  // sensor_msgs::PointCloud2Iterator<float> iter_dock(painted_pointcloud_msg, "DOCK");
+
+  // for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
+  //      iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
+  //      iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, 
+  //      ++iter_red_buoy, ++iter_yellow_buoy, ++iter_black_buoy, ++iter_dock) {
+  //   //カメラ座標⇨画像座標系
+  //   Eigen::Vector4d projected_point = camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
+  //   Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
+    
+  //   int target_row = int(normalized_projected_point.y()) ;
+  //   int target_col = int(normalized_projected_point.x()) ; 
+  //   const size_t target_index = target_row * width + target_col ;
+  //   //*iter_red_buoy = 1.0 ; 
+  //   if (
+  //     target_index <= 0 || target_index >= width*height
+  //    ) {
+  //     continue;
+  //   } else {
+  //     uchar class_name = seg_map.at<uchar>(target_row,target_col);
+  //     if (class_name == 0) {
+  //       *iter_red_buoy = 1.0 ; 
+  //     } else if (class_name == 1) {
+  //       *iter_yellow_buoy = 1.0 ;
+  //     } else if (class_name == 2) {
+  //       *iter_black_buoy = 1.0 ;
+  //     } else if (class_name == 3) {
+  //       *iter_dock = 1.0 ;
+  //     } else {
+  //     }
+  //   }
+ 
+  // }
 }
 }
 
