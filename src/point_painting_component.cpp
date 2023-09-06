@@ -107,7 +107,7 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
   pcd_modifier.setPointCloud2Fields(
     num_fields, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1,
     sensor_msgs::msg::PointField::FLOAT32, "z", 1, sensor_msgs::msg::PointField::FLOAT32, 
-    "RED_BUOY ", 1,sensor_msgs::msg::PointField::FLOAT32, 
+    "RED_BUOY", 1,sensor_msgs::msg::PointField::FLOAT32, 
     "YELLOW_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
     "BLACK_BUOY", 1, sensor_msgs::msg::PointField::FLOAT32,
     "DOCK", 1, sensor_msgs::msg::PointField::FLOAT32
@@ -169,73 +169,66 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   //     return ;
   // }
   
-
-  // geometry_msgs::msg::TransformStamped transform_stamped;
-  // {
-  //   const auto transform_stamped_optional = getTransformStamped(
-  //     tfBuffer, camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id,camera_info.header.stamp);
-  //   if (!transform_stamped_optional) {
-  //     return;
-  //   }
-  //   transform_stamped = transform_stamped_optional.value();    
-  // }
   geometry_msgs::msg::TransformStamped transform_stamped;
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   try {  
     transform_stamped = buffer_.lookupTransform(camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id,camera_info.header.stamp, rclcpp::Duration::from_seconds(0.5));
     //点群::LiDAR座標系⇨カメラ行列
     tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
-    point_painting_pub_->publish(transformed_pointcloud);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("image_projection_based_fusion"), ex.what());
-    // return std::nullopt;
+    return ;//std::nullopt;
   }
 
-
-
-
-  // Eigen::Matrix4d camera_projection;
-  // camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
-  //   camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
-  //   camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
-  //   camera_info.p.at(11);
+  Eigen::Matrix4d camera_projection;
+  camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
+    camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
+    camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
+    camera_info.p.at(11), 0 , 0 , 0 , 1 ;
   
-  // sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(painted_pointcloud_msg, "");
-  // sensor_msgs::PointCloud2Iterator<float> iter_yellow_buoy(painted_pointcloud_msg, "YELLOW_BUOY");
-  // sensor_msgs::PointCloud2Iterator<float> iter_black_buoy(painted_pointcloud_msg, "BLACK_BUOY");
-  // sensor_msgs::PointCloud2Iterator<float> iter_dock(painted_pointcloud_msg, "DOCK");
+  sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(transformed_pointcloud, "RED_BUOY");
+  sensor_msgs::PointCloud2Iterator<float> iter_yellow_buoy(transformed_pointcloud, "YELLOW_BUOY");
+  sensor_msgs::PointCloud2Iterator<float> iter_black_buoy(transformed_pointcloud, "BLACK_BUOY");
+  sensor_msgs::PointCloud2Iterator<float> iter_dock(transformed_pointcloud, "DOCK");
 
-  // for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
-  //      iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
-  //      iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, 
-  //      ++iter_red_buoy, ++iter_yellow_buoy, ++iter_black_buoy, ++iter_dock) {
-  //   //カメラ座標⇨画像座標系
-  //   Eigen::Vector4d projected_point = camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
-  //   Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
+  for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
+       iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
+       iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z,
+       ++iter_red_buoy, ++iter_yellow_buoy, ++iter_black_buoy, ++iter_dock) {
+    //カメラ座標⇨画像座標系
+    Eigen::Vector4d projected_point = camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
+    Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
     
-  //   int target_row = int(normalized_projected_point.y()) ;
-  //   int target_col = int(normalized_projected_point.x()) ; 
-  //   const size_t target_index = target_row * width + target_col ;
-  //   //*iter_red_buoy = 1.0 ; 
-  //   if (
-  //     target_index <= 0 || target_index >= width*height
-  //    ) {
-  //     continue;
-  //   } else {
-  //     uchar class_name = seg_map.at<uchar>(target_row,target_col);
-  //     if (class_name == 0) {
-  //       *iter_red_buoy = 1.0 ; 
-  //     } else if (class_name == 1) {
-  //       *iter_yellow_buoy = 1.0 ;
-  //     } else if (class_name == 2) {
-  //       *iter_black_buoy = 1.0 ;
-  //     } else if (class_name == 3) {
-  //       *iter_dock = 1.0 ;
-  //     } else {
-  //     }
-  //   }
- 
-  // }
+    *iter_red_buoy = 0.0 ;
+    *iter_yellow_buoy = 1.0 ;
+    *iter_black_buoy = 0.0 ;
+    *iter_dock = 1.0 ;
+
+    // int target_row = int(normalized_projected_point.y()) ;
+    // int target_col = int(normalized_projected_point.x()) ; 
+    //const size_t target_index = target_row * width + target_col ;
+    // if (
+    //   target_index <= 0 || target_index >= width*height
+    //  ) {
+    //   continue;
+    // } else {
+    //   uchar class_name = seg_map.at<uchar>(target_row,target_col);
+    //   if (class_name == 0) {
+    //     *iter_red_buoy = 1.0 ; 
+    //   } else if (class_name == 1) {
+    //*iter_yellow_buoy = 1.0 ;
+    //   } else if (class_name == 2) {
+    //     *iter_black_buoy = 1.0 ;
+    //   } else if (class_name == 3) {
+    //     *iter_dock = 1.0 ;
+    //   } else {
+    //   }
+    // }
+  }
+  if (debug){
+    point_painting_pub_->publish(transformed_pointcloud);
+  }
+  
 }
 }
 
