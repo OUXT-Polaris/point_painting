@@ -186,10 +186,18 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
     camera_info.p.at(11), 0 , 0 , 0 , 1 ;
   
+
+  //befor
   sensor_msgs::PointCloud2Iterator<float> iter_red_buoy(transformed_pointcloud, "RED_BUOY");
   sensor_msgs::PointCloud2Iterator<float> iter_yellow_buoy(transformed_pointcloud, "YELLOW_BUOY");
   sensor_msgs::PointCloud2Iterator<float> iter_black_buoy(transformed_pointcloud, "BLACK_BUOY");
   sensor_msgs::PointCloud2Iterator<float> iter_dock(transformed_pointcloud, "DOCK");
+
+  //new
+  sensor_msgs::PointCloud2Iterator<float> iter_task_obj(transformed_pointcloud, "is_task_obj");
+  sensor_msgs::PointCloud2Iterator<float> iter_obs_obj(transformed_pointcloud, "is_obs_obj");
+  sensor_msgs::PointCloud2Iterator<float> iter_unknown(transformed_pointcloud, "unknown");
+  
 
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
        iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
