@@ -16,6 +16,12 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+#find_package(generate_parameter_library REQUIRED)
 
 
 ament_auto_find_build_dependencies()
@@ -25,18 +31,21 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-# launchファイルをインストール（ament_package_indexが探せる場所に置く）
 install(DIRECTORY
   launch
   config
   DESTINATION share/${PROJECT_NAME}/
 )
 
-
 # Create the component target
 ament_auto_add_library(${PROJECT_NAME}-${COMP_NAME_LOWER}_component SHARED
     src/${COMP_NAME_LOWER}_component.cpp
 )
+
+target_link_libraries(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
+    ${OpenCV_LIBRARIES}
+)
+
 target_compile_definitions(${PROJECT_NAME}-${COMP_NAME_LOWER}_component
     PRIVATE ${PROJECT_NAME}_BUILDING_DLL)
 

@@ -6,5 +6,3 @@
     </composable_node>
   </node_container>
 </launch>
-
-<!-- 書き方についてはhttps://docs.ros.org/en/humble/How-To-Guides/Launching-composable-nodes.html?highlight=xml#python-xml-or-yaml-which-should-i-use -->

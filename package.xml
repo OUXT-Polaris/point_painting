@@ -13,7 +13,6 @@
    <build_depend>segmentation_msg</build_depend>
    <exec_depend>segmentation_msg</exec_depend>
    <!--  <ここまで>-->
-   
 
    <depend>rclcpp</depend>
    <depend>rclcpp_components</depend>
@@ -26,7 +25,10 @@
    <depend>tf2_ros</depend>
    <depend>tf2_sensor_msgs</depend>
    <depend>tf2_geometry_msgs</depend>
-  
+   <depend>generate_parameter_library</depend>
+   <depend>opencv</depend>
+   <depend>cv_bridge</depend>
+   
    <test_depend>ament_lint_auto</test_depend>
    <test_depend>ouxt_lint_common</test_depend>
    <export>
