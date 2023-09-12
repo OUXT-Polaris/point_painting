@@ -45,7 +45,6 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
 : Node("pointpainting_fusion", options), buffer_(get_clock()),listener_(buffer_)
 {  
   //param
-  declare_parameter<std::vector<std::string>>("class_names");
   declare_parameter<std::vector<double>>("point_cloud_range");
   declare_parameter<std::vector<double>>("min_area_matrix");
   declare_parameter<std::vector<double>>("max_area_matrix");
@@ -54,14 +53,14 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   declare_parameter("point_cloud_topic","/point_cloud");
   declare_parameter("debug",false);
 
-  debug = get_parameter("debug").as_bool();
-  class_names_ = get_parameter("class_names").as_string_array();
+
   pointcloud_range_ = get_parameter("point_cloud_range").as_double_array();
   const auto min_area_matrix = get_parameter("min_area_matrix").as_double_array();
   const auto max_area_matrix = get_parameter("max_area_matrix").as_double_array();
   const auto segmentation_topic = get_parameter("segmentation_topic").as_string();
   const auto camera_info_topic = get_parameter("camera_info_topic").as_string();
   const auto point_cloud_topic = get_parameter("point_cloud_topic").as_string();
+  debug = get_parameter("debug").as_bool();
 
   //piblisher
   using namespace std::chrono_literals;
@@ -90,7 +89,7 @@ void PointPaintingFusionComponent::pointcloud_callback(const sensor_msgs::msg::P
 {
   sensor_msgs::msg::PointCloud2 pointcloud = pointcloud_msg;
   preprocess(pointcloud);
-  fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
+  //fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
 }
 
 void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg)
@@ -102,7 +101,7 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
   pcd_modifier.reserve(tmp_point.width);
   painted_pointcloud_msg.width = tmp_point.width;
   painted_pointcloud_msg.height = tmp_point.height;
-  constexpr int num_fields = 6;
+  int num_fields = 6;
  
   pcd_modifier.setPointCloud2Fields(
     num_fields, 
@@ -114,17 +113,18 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
     "scores", 1, sensor_msgs::msg::PointField::FLOAT32
     );
 
+
   painted_pointcloud_msg.point_step = num_fields * sizeof(float);
   const auto painted_point_step = painted_pointcloud_msg.point_step;
   size_t j = 0;
   sensor_msgs::PointCloud2Iterator<float> iter_painted_x(painted_pointcloud_msg, "x");
   sensor_msgs::PointCloud2Iterator<float> iter_painted_y(painted_pointcloud_msg, "y");
   sensor_msgs::PointCloud2Iterator<float> iter_painted_z(painted_pointcloud_msg, "z");
-  sensor_msgs::PointCloud2Iterator<float> iter_painted_intensity(painted_pointcloud_msg, "intensity");
+  sensor_msgs::PointCloud2Iterator<float> iter_painted_intensity(painted_pointcloud_msg,"intensity");
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(tmp_point, "x"), iter_y(tmp_point, "y"),
        iter_z(tmp_point, "z") , iter_intensity(tmp_point, "intensity");
        iter_x != iter_x.end();
-       ++iter_x, ++iter_y, ++iter_z, ++iter_painted_x, ++iter_painted_y, ++iter_painted_z,++iter_painted_intensity) {
+       ++iter_x, ++iter_y, ++iter_z, ++iter_intensity, ++iter_painted_x, ++iter_painted_y, ++iter_painted_z, ++iter_painted_intensity) {
     if (
       *iter_x <= pointcloud_range_.at(0) || *iter_x >= pointcloud_range_.at(3) ||
       *iter_y <= pointcloud_range_.at(1) || *iter_y >= pointcloud_range_.at(4)) {
@@ -206,6 +206,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   if (debug){
     point_painting_pub_->publish(transformed_pointcloud);
   }
+  
 }
 }
 
