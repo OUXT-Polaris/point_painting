@@ -30,8 +30,11 @@
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 #include <tf2_ros/transform_listener.h>
 
-
+#ifdef ROS_DISTRO_ROLLING
+#include <cv_bridge/cv_bridge.hpp>
+#else
 #include <cv_bridge/cv_bridge.h>
+#endif
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 

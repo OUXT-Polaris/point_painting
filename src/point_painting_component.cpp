@@ -28,14 +28,22 @@
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#ifdef ROS_DISTRO_GALACTIC
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#else
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#endif
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include "segmentation_msg/msg/segmentation_info.hpp"
 
 //opencv
 #include <sensor_msgs/image_encodings.hpp>
+#ifdef ROS_DISTRO_ROLLING
+#include <cv_bridge/cv_bridge.hpp>
+#else
 #include <cv_bridge/cv_bridge.h>
+#endif
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 
