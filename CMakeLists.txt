@@ -20,7 +20,6 @@ find_package(OpenCV REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-#find_package(generate_parameter_library REQUIRED)
 
 
 ament_auto_find_build_dependencies()
