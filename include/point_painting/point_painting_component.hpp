@@ -44,7 +44,7 @@ public:
   explicit PointPaintingFusionComponent(const rclcpp::NodeOptions & options);
  
 private:
-  bool debug;
+  bool debug_;
   tf2_ros::Buffer buffer_;
   tf2_ros::TransformListener listener_;
   std::vector<std::string> class_names_;

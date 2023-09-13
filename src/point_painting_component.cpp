@@ -60,12 +60,12 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   const auto segmentation_topic = get_parameter("segmentation_topic").as_string();
   const auto camera_info_topic = get_parameter("camera_info_topic").as_string();
   const auto point_cloud_topic = get_parameter("point_cloud_topic").as_string();
-  debug = get_parameter("debug").as_bool();
+  debug_ = get_parameter("debug").as_bool();
 
   //piblisher
   using namespace std::chrono_literals;
   point_painting_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("point_painting", 10);
-  if (debug){
+  if (debug_){
     preprocess_debug_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("preprocess_debug", 10);
   }
   //subscriber
@@ -140,7 +140,7 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
   painted_pointcloud_msg.data.resize(j); 
   painted_pointcloud_msg.width = static_cast<uint32_t>(painted_pointcloud_msg.data.size() / painted_pointcloud_msg.height / painted_pointcloud_msg.point_step);
   painted_pointcloud_msg.row_step = static_cast<uint32_t>(painted_pointcloud_msg.data.size() / painted_pointcloud_msg.height);
-  if (debug){
+  if (debug_){
     preprocess_debug_pub_->publish(painted_pointcloud_msg);
   }
 }
@@ -203,7 +203,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
       *iter_scores = seg_img.at<cv::Vec3b>(img_point_y,img_point_x)[2];
     }
   }
-  if (debug){
+  if (debug_){
     point_painting_pub_->publish(transformed_pointcloud);
   }
   
