@@ -53,16 +53,12 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
 {
   //param
   declare_parameter<std::vector<double>>("point_cloud_range");
-  declare_parameter<std::vector<double>>("min_area_matrix");
-  declare_parameter<std::vector<double>>("max_area_matrix");
   declare_parameter("segmentation_topic", "/SegmentationInfo");
   declare_parameter("camera_info_topic", "/CameraInfo");
   declare_parameter("point_cloud_topic", "/point_cloud");
   declare_parameter("debug", false);
 
   pointcloud_range_ = get_parameter("point_cloud_range").as_double_array();
-  const auto min_area_matrix = get_parameter("min_area_matrix").as_double_array();
-  const auto max_area_matrix = get_parameter("max_area_matrix").as_double_array();
   const auto segmentation_topic = get_parameter("segmentation_topic").as_string();
   const auto camera_info_topic = get_parameter("camera_info_topic").as_string();
   const auto point_cloud_topic = get_parameter("point_cloud_topic").as_string();
@@ -170,8 +166,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   cv_bridge::CvImagePtr cv_ptr;
   cv::Mat seg_img;
   try {
-    cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation, sensor_msgs::image_encodings::BGR8);
-    //cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);
+    cv_ptr = cv_bridge::toCvCopy(SegmentationInfo.segmentation,sensor_msgs::image_encodings::MONO8);
     seg_img = cv_ptr->image;
   } catch (cv_bridge::Exception & e) {
     RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
