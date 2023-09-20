@@ -99,7 +99,7 @@ void PointPaintingFusionComponent::pointcloud_callback(
 {
   sensor_msgs::msg::PointCloud2 pointcloud = pointcloud_msg;
   preprocess(pointcloud);
-  //fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
+  fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
 }
 
 void PointPaintingFusionComponent::preprocess(
