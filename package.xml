@@ -10,8 +10,8 @@
    <buildtool_depend>ament_cmake_auto</buildtool_depend>
    
    <!--  <追加部>-->
-   <build_depend>segmentation_msg</build_depend>
-   <exec_depend>segmentation_msg</exec_depend>
+   <build_depend>detic_onnx_ros2_msg</build_depend>
+   <exec_depend>detic_onnx_ros2_msg</exec_depend>
    <!--  <ここまで>-->
 
    <depend>rclcpp</depend>

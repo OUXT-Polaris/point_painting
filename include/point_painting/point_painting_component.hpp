@@ -27,7 +27,7 @@
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
-#include "segmentation_msg/msg/segmentation_info.hpp"
+#include "detic_onnx_ros2_msg/msg/segmentation_info.hpp"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 
 #ifdef ROS_DISTRO_ROLLING
@@ -55,7 +55,7 @@ private:
 
   void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
   void fuseOnSingleImage(
-    const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
+    const detic_onnx_ros2_msg::msg::SegmentationInfo & SegmentationInfo,
     sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
     const sensor_msgs::msg::CameraInfo & camera_info);
 
@@ -63,18 +63,18 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   void timer_callback();
   //ros2 message
-  segmentation_msg::msg::SegmentationInfo segmentationinfo_;
+  detic_onnx_ros2_msg::msg::SegmentationInfo segmentationinfo_;
   sensor_msgs::msg::CameraInfo camera_info_;
   //Publisher
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_painting_pub_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr preprocess_debug_pub_;
 
   //Subscriber
-  rclcpp::Subscription<segmentation_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
+  rclcpp::Subscription<detic_onnx_ros2_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
   //callback
-  void segmentation_callback(const segmentation_msg::msg::SegmentationInfo & segmentationinfo);
+  void segmentation_callback(const detic_onnx_ros2_msg::msg::SegmentationInfo & segmentationinfo);
   void pointcloud_callback(const sensor_msgs::msg::PointCloud2 & pointcloud);
   void camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_info);
 };

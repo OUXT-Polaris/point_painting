@@ -23,18 +23,17 @@
 //ros2
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include "detic_onnx_ros2_msg/msg/segmentation_info.hpp"
+
 #ifdef ROS_DISTRO_GALACTIC
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #endif
-#include <sensor_msgs/msg/camera_info.hpp>
-#include <sensor_msgs/msg/image.hpp>
-
-#include "segmentation_msg/msg/segmentation_info.hpp"
 
 //opencv
 #include <sensor_msgs/image_encodings.hpp>
@@ -45,6 +44,7 @@
 #endif
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+
 
 namespace point_painting
 {
@@ -71,8 +71,8 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
     preprocess_debug_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("preprocess_debug", 10);
   }
   //subscriber
-  segmentation_sub_ = create_subscription<segmentation_msg::msg::SegmentationInfo>(
-    segmentation_topic, 1, [this](const segmentation_msg::msg::SegmentationInfo seg_msg) {
+  segmentation_sub_ = create_subscription<detic_onnx_ros2_msg::msg::SegmentationInfo>(
+    segmentation_topic, 1, [this](const detic_onnx_ros2_msg::msg::SegmentationInfo seg_msg) {
       segmentation_callback(seg_msg);
     });
   camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
@@ -85,7 +85,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
 }
 
 void PointPaintingFusionComponent::segmentation_callback(
-  const segmentation_msg::msg::SegmentationInfo & seg_msg)
+  const detic_onnx_ros2_msg::msg::SegmentationInfo & seg_msg)
 {
   segmentationinfo_ = seg_msg;
 }
@@ -115,10 +115,12 @@ void PointPaintingFusionComponent::preprocess(
   int num_fields = 6;
 
   pcd_modifier.setPointCloud2Fields(
-    num_fields, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1,
-    sensor_msgs::msg::PointField::FLOAT32, "z", 1, sensor_msgs::msg::PointField::FLOAT32,
-    "intensity", 1, sensor_msgs::msg::PointField::FLOAT32, "class", 1,
-    sensor_msgs::msg::PointField::FLOAT32, "scores", 1, sensor_msgs::msg::PointField::FLOAT32);
+    num_fields, "x", 1, sensor_msgs::msg::PointField::FLOAT32, 
+    "y", 1, sensor_msgs::msg::PointField::FLOAT32, 
+    "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+    "intensity", 1, sensor_msgs::msg::PointField::FLOAT32, 
+    "class", 1,sensor_msgs::msg::PointField::FLOAT32, 
+    "scores", 1, sensor_msgs::msg::PointField::FLOAT32);
 
   painted_pointcloud_msg.point_step = num_fields * sizeof(float);
   const auto painted_point_step = painted_pointcloud_msg.point_step;
@@ -126,8 +128,8 @@ void PointPaintingFusionComponent::preprocess(
   sensor_msgs::PointCloud2Iterator<float> iter_painted_x(painted_pointcloud_msg, "x");
   sensor_msgs::PointCloud2Iterator<float> iter_painted_y(painted_pointcloud_msg, "y");
   sensor_msgs::PointCloud2Iterator<float> iter_painted_z(painted_pointcloud_msg, "z");
-  sensor_msgs::PointCloud2Iterator<float> iter_painted_intensity(
-    painted_pointcloud_msg, "intensity");
+  sensor_msgs::PointCloud2Iterator<float> iter_painted_intensity(painted_pointcloud_msg, "intensity");
+
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(tmp_point, "x"), iter_y(tmp_point, "y"),
        iter_z(tmp_point, "z"), iter_intensity(tmp_point, "intensity");
        iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z, ++iter_intensity, ++iter_painted_x,
@@ -156,13 +158,12 @@ void PointPaintingFusionComponent::preprocess(
 }
 
 void PointPaintingFusionComponent::fuseOnSingleImage(
-  const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
+  const detic_onnx_ros2_msg::msg::SegmentationInfo & SegmentationInfo,
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info)
 {
-  uint32_t width = SegmentationInfo.segmentation.width;
-  uint32_t height = SegmentationInfo.segmentation.height;
-
+  uint32_t width = camera_info.width;
+  uint32_t height = camera_info.height;
   cv_bridge::CvImagePtr cv_ptr;
   cv::Mat seg_img;
   try {
@@ -206,12 +207,12 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
 
     int img_point_x = int(normalized_projected_point.x());
     int img_point_y = int(normalized_projected_point.y());
-
     if (
       0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y &&
       img_point_y <= int(height)) {
-      *iter_class = seg_img.at<cv::Vec3b>(img_point_y, img_point_x)[1];
-      *iter_scores = seg_img.at<cv::Vec3b>(img_point_y, img_point_x)[2];
+      // uchar pixel_value = seg_img.at<uchar>(img_point_y, img_point_x);  
+      *iter_class = static_cast<float>(seg_img.at<uchar>(img_point_y, img_point_x));
+      //RCLCPP_INFO(this->get_logger(), "pixel_value: %u", pixel_value);
     }
   }
   if (debug_) {
