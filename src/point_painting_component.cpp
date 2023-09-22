@@ -210,9 +210,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     if (
       0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y &&
       img_point_y <= int(height)) {
-      // uchar pixel_value = seg_img.at<uchar>(img_point_y, img_point_x);  
       *iter_class = static_cast<float>(seg_img.at<uchar>(img_point_y, img_point_x));
-      //RCLCPP_INFO(this->get_logger(), "pixel_value: %u", pixel_value);
     }
   }
   if (debug_) {
