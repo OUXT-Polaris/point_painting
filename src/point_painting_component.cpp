@@ -175,7 +175,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   }
 
   geometry_msgs::msg::TransformStamped transform_stamped;
-  sensor_msgs::msg::PointCloud2 transformed_pointcloud;
+  sensor_msgs::msg::PointCloud2 transformed_pointcloud = painted_pointcloud_msg;
   try {
     transform_stamped = buffer_.lookupTransform(
       camera_info.header.frame_id, painted_pointcloud_msg.header.frame_id, camera_info.header.stamp,
@@ -207,15 +207,45 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
 
     int img_point_x = int(normalized_projected_point.x());
     int img_point_y = int(normalized_projected_point.y());
-    if (
-      0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y &&
-      img_point_y <= int(height)) {
-      *iter_class = static_cast<float>(seg_img.at<uchar>(img_point_y, img_point_x));
+    
+    *iter_class = 0.0;      
+    if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y &&
+      img_point_y <= int(height)) 
+    { 
+      int mask_idx = static_cast<int>(seg_img.at<unsigned char>(img_point_y,img_point_x));
+    
+      //RCLCPP_INFO(rclcpp::get_logger("image_pixel_value"),"mask_idx : %d",mask_idx);
+
+      std::vector<std::string> task_obj = {"airplane","sail"}; 
+      std::vector<std::string> obst_obj = {"boll","cone","beachball"}; 
+      if (!SegmentationInfo.detected_classes.empty()){
+        if (mask_idx < int(sizeof(SegmentationInfo.detected_classes) / sizeof(int))){
+          std::string seg_class = SegmentationInfo.detected_classes[mask_idx];
+
+          for (auto &obj : task_obj) {
+              if (seg_class == obj) {
+                  *iter_class = 100.0;
+                  //RCLCPP_INFO(this->get_logger(),"task_obj");
+                  break;
+              }
+          }
+          for (auto &obj : obst_obj) {
+              if (seg_class == obj) {
+                  *iter_class = 200.0;
+                  // RCLCPP_INFO(rclcpp::get_logger("image_pixel_value"),"x : %d",img_point_x);
+                  // RCLCPP_INFO(rclcpp::get_logger("image_pixel_value"),"y : %d",img_point_y);
+                  // RCLCPP_INFO(this->get_logger(),"obst_obj");
+                  break;
+              }
+          }
+          RCLCPP_INFO(this->get_logger(),seg_class.c_str());
+        }
+      }
+    }else{
+      *iter_class = 0 ;
     }
   }
-  if (debug_) {
-    point_painting_pub_->publish(transformed_pointcloud);
-  }
+  point_painting_pub_->publish(transformed_pointcloud);
 }
 }  // namespace point_painting
 
