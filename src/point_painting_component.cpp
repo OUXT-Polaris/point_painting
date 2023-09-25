@@ -152,9 +152,6 @@ void PointPaintingFusionComponent::preprocess(
     painted_pointcloud_msg.point_step);
   painted_pointcloud_msg.row_step =
     static_cast<uint32_t>(painted_pointcloud_msg.data.size() / painted_pointcloud_msg.height);
-  if (debug_) {
-    preprocess_debug_pub_->publish(painted_pointcloud_msg);
-  }
 }
 
 void PointPaintingFusionComponent::fuseOnSingleImage(
@@ -162,8 +159,6 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info)
 {
-  uint32_t width = camera_info.width;
-  uint32_t height = camera_info.height;
   cv_bridge::CvImagePtr cv_ptr;
   cv::Mat seg_img;
   try {
@@ -174,12 +169,15 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     return;
   }
 
+  uint32_t width = seg_img.cols;
+  uint32_t height = seg_img.rows;
+
   geometry_msgs::msg::TransformStamped transform_stamped;
-  sensor_msgs::msg::PointCloud2 transformed_pointcloud = painted_pointcloud_msg;
+  sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   try {
     transform_stamped = buffer_.lookupTransform(
       camera_info.header.frame_id, painted_pointcloud_msg.header.frame_id, camera_info.header.stamp,
-      rclcpp::Duration::from_seconds(0.5));
+      rclcpp::Duration::from_seconds(0.1));
     //点群::LiDAR座標系⇨カメラ行列
     tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
   } catch (tf2::TransformException & ex) {
@@ -191,7 +189,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
     camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
     camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
-    camera_info.p.at(11), 0, 0, 0, 1;
+    camera_info.p.at(11), 0, 0, 1, 0;
 
   sensor_msgs::PointCloud2Iterator<float> iter_class(transformed_pointcloud, "class");
   sensor_msgs::PointCloud2Iterator<float> iter_scores(transformed_pointcloud, "scores");
@@ -204,48 +202,61 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
       camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
     Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(
       projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
-
+    if(projected_point.z() < 0.0){
+      continue;
+    }
     int img_point_x = int(normalized_projected_point.x());
     int img_point_y = int(normalized_projected_point.y());
-    
-    *iter_class = 0.0;      
+        
+
     if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y &&
       img_point_y <= int(height)) 
     { 
       int mask_idx = static_cast<int>(seg_img.at<unsigned char>(img_point_y,img_point_x));
-    
-      //RCLCPP_INFO(rclcpp::get_logger("image_pixel_value"),"mask_idx : %d",mask_idx);
-
       std::vector<std::string> task_obj = {"airplane","sail"}; 
-      std::vector<std::string> obst_obj = {"boll","cone","beachball"}; 
+      std::vector<std::string> obst_obj = {"ball","cone","beachball"}; 
       if (!SegmentationInfo.detected_classes.empty()){
         if (mask_idx < int(sizeof(SegmentationInfo.detected_classes) / sizeof(int))){
           std::string seg_class = SegmentationInfo.detected_classes[mask_idx];
-
           for (auto &obj : task_obj) {
               if (seg_class == obj) {
-                  *iter_class = 100.0;
-                  //RCLCPP_INFO(this->get_logger(),"task_obj");
+                  *iter_class = 50.0;
                   break;
               }
           }
           for (auto &obj : obst_obj) {
               if (seg_class == obj) {
-                  *iter_class = 200.0;
-                  // RCLCPP_INFO(rclcpp::get_logger("image_pixel_value"),"x : %d",img_point_x);
-                  // RCLCPP_INFO(rclcpp::get_logger("image_pixel_value"),"y : %d",img_point_y);
-                  // RCLCPP_INFO(this->get_logger(),"obst_obj");
+                  *iter_class =150.0;
                   break;
               }
           }
-          RCLCPP_INFO(this->get_logger(),seg_class.c_str());
+          if(seg_class == "background"){
+            *iter_class = 300.0;     
+          }
         }
       }
-    }else{
-      *iter_class = 0 ;
     }
+    Eigen::Vector4d reprojection_cloud;
+    reprojection_cloud << *iter_x, *iter_y, *iter_z, 1.0;
+    reprojection_cloud = camera_projection.reverse() * projected_point;
   }
-  point_painting_pub_->publish(transformed_pointcloud);
+              
+  sensor_msgs::msg::PointCloud2 paint_pointcloud;
+  geometry_msgs::msg::TransformStamped reverse_transform_stamped;
+  try {
+  reverse_transform_stamped = buffer_.lookupTransform(
+    painted_pointcloud_msg.header.frame_id, camera_info.header.frame_id, camera_info.header.stamp,
+    rclcpp::Duration::from_seconds(0.1));
+  //点群::LiDAR座標系⇨カメラ行列
+  tf2::doTransform(transformed_pointcloud, paint_pointcloud , reverse_transform_stamped);
+  } catch (tf2::TransformException & ex) {
+  RCLCPP_WARN_STREAM(rclcpp::get_logger("image_projection_based_fusion"), ex.what());
+  return;
+  }
+  if(debug_){
+    preprocess_debug_pub_->publish(transformed_pointcloud);
+  }
+  point_painting_pub_->publish(paint_pointcloud);
 }
 }  // namespace point_painting
 
