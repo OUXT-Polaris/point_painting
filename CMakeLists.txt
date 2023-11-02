@@ -11,7 +11,7 @@ endif()
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
 
-find_package(segmentation_msg REQUIRED)
+find_package(detic_onnx_ros2_msg REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -21,6 +21,7 @@ find_package(rclcpp REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(Boost REQUIRED)
 #find_package(generate_parameter_library REQUIRED)
 
 

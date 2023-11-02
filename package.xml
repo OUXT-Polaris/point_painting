@@ -10,8 +10,8 @@
    <buildtool_depend>ament_cmake_auto</buildtool_depend>
    
    <!--  <追加部>-->
-   <build_depend>segmentation_msg</build_depend>
-   <exec_depend>segmentation_msg</exec_depend>
+   <build_depend>detic_onnx_ros2_msg</build_depend>
+   <exec_depend>detic_onnx_ros2_msg</exec_depend>
    <!--  <ここまで>-->
 
    <depend>rclcpp</depend>
@@ -28,6 +28,7 @@
    <depend>generate_parameter_library</depend>
    <depend>opencv</depend>
    <depend>cv_bridge</depend>
+   <depend>Boost</depend>
    
    <test_depend>ament_lint_auto</test_depend>
    <test_depend>ouxt_lint_common</test_depend>
