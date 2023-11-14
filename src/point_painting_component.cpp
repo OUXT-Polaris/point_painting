@@ -39,6 +39,16 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
+#include <boost/geometry/algorithms/within.hpp>
+#include <boost/geometry/geometries/adapted/boost_tuple.hpp>
+#include <boost/assign.hpp> 1
+namespace bg = boost::geometry;
+BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS(cs::cartesian)
+
+
 namespace point_painting
 {
 PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOptions & options)
@@ -89,7 +99,7 @@ void PointPaintingFusionComponent::pointcloud_callback(const sensor_msgs::msg::P
 {
   sensor_msgs::msg::PointCloud2 pointcloud = pointcloud_msg;
   preprocess(pointcloud);
-  //fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
+  fuseOnSingleImage(segmentationinfo_,pointcloud,camera_info_);
 }
 
 void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg)
@@ -148,72 +158,87 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
 
 
 void PointPaintingFusionComponent::fuseOnSingleImage(
-  const detic_onnx_ros2_msg::msg::SegmentationInfo & SegmentationInfo,
+  const detic_onnx_ros2_msg::msg::SegmentationInfo & seg_msg,
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info
 )
 { 
-  std::vector<uint32_t> polygons  = SegmentationInfo.segmentation.polygons;
-  typedef boost::geometry::model::d2::point_xy<double> xy;
-  typedef boost::geometry::model::polygon<xy> polygon;
+  //detic_msg⇨polygon配列に
+  typedef bg::model::d2::point_xy<double> Point;
+  typedef bg::model::polygon<Point> polygon;
   std::vector<polygon> polyArray;
-  
-  for (auto & points : polygons) {
-    polygon poly;
-    for (auto & point : points) {
-          poly.emplace_back(point.x, point.y);
-          //boost::geometry::append(poly.outer(), points);
+  for (const auto& segmentation : seg_msg.segmentations) {
+    for (const auto& polygon : segmentation.polygons) {
+      typedef bg::model::polygon<Point> Poly;  
+      Poly poly;  
+      for (const auto& point : polygon.points){
+        double x = point.x; 
+        double y = point.y; 
+        bg::append(poly,Point(x, y));
+      }
+      polyArray.push_back(poly);
     }
-    polyArray.push_back(poly);
   }
 
+  //点群::LiDAR座標系⇨カメラ座標系
   geometry_msgs::msg::TransformStamped transform_stamped;
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
   try {  
-    transform_stamped = buffer_.lookupTransform(camera_info.header.frame_id,painted_pointcloud_msg.header.frame_id,camera_info.header.stamp, rclcpp::Duration::from_seconds(0.5));
-    //点群::LiDAR座標系⇨カメラ行列
+    transform_stamped = buffer_.lookupTransform(
+      camera_info.header.frame_id,
+      painted_pointcloud_msg.header.frame_id,
+      camera_info.header.stamp, 
+      rclcpp::Duration::from_seconds(0.5)
+    );
     tf2::doTransform(painted_pointcloud_msg, transformed_pointcloud, transform_stamped);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("image_projection_based_fusion"), ex.what());
     return ;
   }
 
+  //点群::カメラ座標系⇨画像座標系 && polygon内外判定
   Eigen::Matrix4d camera_projection;  //Homogeneous Coordinates
   camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
     camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
     camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
-    camera_info.p.at(11), 0 , 0 , 0 , 1 ;
-  
+    camera_info.p.at(11), 0, 0, 0, 1 ;
+
   sensor_msgs::PointCloud2Iterator<float> iter_class(transformed_pointcloud, "class");
   sensor_msgs::PointCloud2Iterator<float> iter_scores(transformed_pointcloud, "scores");
   
-
-  
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
        iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
-       iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z,
+       iter_x != iter_x.end(); 
+       ++iter_x, ++iter_y, ++iter_z,
        ++iter_class, ++iter_scores) {
-    //Camera Coordinates⇨ Image Coordinates
+    //Eigen::Vector3d projected_point = camera_projection * Eigen::Vector3d(*iter_x, *iter_y, *iter_z);
     Eigen::Vector4d projected_point = camera_projection * Eigen::Vector4d(*iter_x, *iter_y, *iter_z, 1.0);
     Eigen::Vector2d normalized_projected_point = Eigen::Vector2d(projected_point.x() / projected_point.z(), projected_point.y() / projected_point.z());
     int img_point_x = int(normalized_projected_point.x()) ; 
     int img_point_y = int(normalized_projected_point.y()) ;
+    
+    //とりあえず
+    int width = 640 ;
+    int height = 640 ;
 
-    // if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {
-    //   typedef boost::geometry::model::d2::point_xy<double> xy;
-    //   const xy img_point(img_point_x, img_point_y);
-    //   // for (const polygon &poly : polyArray){
-    //   //   if (boost::geometry::covered_by(img_point,poly)){
-    //   //     *iter_class = 1.0; 
-    //   //     *iter_scores = 1.0;
-    //   //   }
-    //   // } 
+    // *iter_class = 0.0; 
+    // *iter_scores = 0.0;
+    // if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {   
+    //   Point p(img_point_x, img_point_y);
+    //   //for (const auto& poly : polyArray) {
+    //   for (auto poly = polyArray.begin(), segmentation = seg_msg.segmentations.begin(); poly != polyArray.end() && segmentation != seg_msg.segmentations.end(); ++poly, ++segmentation){
+    //       check_covered = boost::geometry::covered_by(p, poly);
+    //       if (check_covered) {
+    //         *iter_class = segmentation.object_class; 
+    //         *iter_scores = segmentation.score;
+    //         break;  
+    //       }
+    //   }
     // }
   }
   if (debug){
     point_painting_pub_->publish(transformed_pointcloud);
-  }
-  
+  }  
 }
 }
 

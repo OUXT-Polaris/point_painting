@@ -72,7 +72,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
   //callback
-  void segmentation_callback(const detic_onnx_ros2_msg::msg::SegmentationInfo &  segmentationinfo);
+  void segmentation_callback(const detic_onnx_ros2_msg::msg::SegmentationInfo &  seg_msg);
   void pointcloud_callback(const sensor_msgs::msg::PointCloud2 &  pointcloud);
   void camera_info_callback(const sensor_msgs::msg::CameraInfo  & camera_info);
 };
