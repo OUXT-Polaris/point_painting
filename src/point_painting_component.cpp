@@ -44,7 +44,7 @@
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/algorithms/within.hpp>
 #include <boost/geometry/geometries/adapted/boost_tuple.hpp>
-#include <boost/assign.hpp> 1
+#include <boost/assign.hpp> 
 namespace bg = boost::geometry;
 BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS(cs::cartesian)
 
@@ -163,14 +163,13 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   const sensor_msgs::msg::CameraInfo & camera_info
 )
 { 
-  //detic_msg⇨polygon配列に
+  //detic_msg ⇨ polygon配列に
   typedef bg::model::d2::point_xy<double> Point;
   typedef bg::model::polygon<Point> polygon;
   std::vector<polygon> polyArray;
   for (const auto& segmentation : seg_msg.segmentations) {
     for (const auto& polygon : segmentation.polygons) {
-      typedef bg::model::polygon<Point> Poly;  
-      Poly poly;  
+      polygon poly;  
       for (const auto& point : polygon.points){
         double x = point.x; 
         double y = point.y; 
@@ -201,7 +200,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
     camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
     camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
-    camera_info.p.at(11), 0, 0, 0, 1 ;
+    camera_info.p.at(11), 0, 0, 0, 1;
 
   sensor_msgs::PointCloud2Iterator<float> iter_class(transformed_pointcloud, "class");
   sensor_msgs::PointCloud2Iterator<float> iter_scores(transformed_pointcloud, "scores");
@@ -221,26 +220,28 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     int width = 640 ;
     int height = 640 ;
 
-    // *iter_class = 0.0; 
-    // *iter_scores = 0.0;
-    // if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {   
-    //   Point p(img_point_x, img_point_y);
-    //   //for (const auto& poly : polyArray) {
-    //   for (auto poly = polyArray.begin(), segmentation = seg_msg.segmentations.begin(); poly != polyArray.end() && segmentation != seg_msg.segmentations.end(); ++poly, ++segmentation){
-    //       check_covered = boost::geometry::covered_by(p, poly);
-    //       if (check_covered) {
-    //         *iter_class = segmentation.object_class; 
-    //         *iter_scores = segmentation.score;
-    //         break;  
-    //       }
-    //   }
-    // }
+    *iter_class = 0.0; 
+    *iter_scores = 0.0;
+    
+    if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {   
+      Point p(img_point_x, img_point_y);
+      auto polyIter = polyArray.begin();
+      auto segIter = seg_msg.segmentations.begin();
+      for (auto it = boost::make_zip_iterator(boost::make_tuple(polyIter, segIter)));
+          
+          bool check_covered = boost::geometry::covered_by(p, poly);
+          if (check_covered) {
+            *iter_class = segmentation.object_class; 
+            *iter_scores = segmentation.score;
+            break;  
+          }
+      }
+    }
   }
   if (debug){
     point_painting_pub_->publish(transformed_pointcloud);
   }  
-}
-}
+}  // namespace point_painting
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(point_painting::PointPaintingFusionComponent)
