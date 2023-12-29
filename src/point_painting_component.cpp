@@ -45,6 +45,9 @@
 #include <boost/geometry/algorithms/within.hpp>
 #include <boost/geometry/geometries/adapted/boost_tuple.hpp>
 #include <boost/assign.hpp> 
+#include <boost/polygon/polygon.hpp>
+#include <boost/geometry/geometries/adapted/boost_polygon.hpp>
+
 namespace bg = boost::geometry;
 BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS(cs::cartesian)
 
@@ -156,29 +159,28 @@ void PointPaintingFusionComponent::preprocess(sensor_msgs::msg::PointCloud2 & pa
 }
 
 
-
 void PointPaintingFusionComponent::fuseOnSingleImage(
   const detic_onnx_ros2_msg::msg::SegmentationInfo & seg_msg,
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info
 )
 { 
-  //detic_msg ⇨ polygon配列に
-  typedef bg::model::d2::point_xy<double> Point;
-  typedef bg::model::polygon<Point> polygon;
-  std::vector<polygon> polyArray;
-  for (const auto& segmentation : seg_msg.segmentations) {
-    for (const auto& polygon : segmentation.polygons) {
-      polygon poly;  
-      for (const auto& point : polygon.points){
-        double x = point.x; 
-        double y = point.y; 
-        bg::append(poly,Point(x, y));
-      }
-      polyArray.push_back(poly);
+  // segmentationからポリゴン作成
+  typedef boost::polygon::polygon_data<int> polygon;
+  std::vector<polygon> polygons;
+  for (const auto& seg_info : seg_msg.segmentations){
+    typedef boost::polygon::polygon_traits<polygon>::point_type point;
+    polygon seg_polygon;
+    for (const auto& img_point : seg_info.polygons[0].points){
+      bg::append(seg_polygon, boost::polygon::construct<point>(img_point.x, img_point.y));
     }
+    polygons.push_back(seg_polygon);
+    //RCLCPP_INFO(this->get_logger(),"add_polygon");
   }
-
+    
+  /*
+  点群::LiDAR座標系⇨カメラ座標系⇨画像座標系
+  */
   //点群::LiDAR座標系⇨カメラ座標系
   geometry_msgs::msg::TransformStamped transform_stamped;
   sensor_msgs::msg::PointCloud2 transformed_pointcloud;
@@ -194,7 +196,6 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     RCLCPP_WARN_STREAM(rclcpp::get_logger("image_projection_based_fusion"), ex.what());
     return ;
   }
-
   //点群::カメラ座標系⇨画像座標系 && polygon内外判定
   Eigen::Matrix4d camera_projection;  //Homogeneous Coordinates
   camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
@@ -204,7 +205,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
 
   sensor_msgs::PointCloud2Iterator<float> iter_class(transformed_pointcloud, "class");
   sensor_msgs::PointCloud2Iterator<float> iter_scores(transformed_pointcloud, "scores");
-  
+    
   for (sensor_msgs::PointCloud2ConstIterator<float> iter_x(transformed_pointcloud, "x"),
        iter_y(transformed_pointcloud, "y"), iter_z(transformed_pointcloud, "z");
        iter_x != iter_x.end(); 
@@ -222,25 +223,60 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
 
     *iter_class = 0.0; 
     *iter_scores = 0.0;
-    
-    if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {   
-      Point p(img_point_x, img_point_y);
-      auto polyIter = polyArray.begin();
-      auto segIter = seg_msg.segmentations.begin();
-      for (auto it = boost::make_zip_iterator(boost::make_tuple(polyIter, segIter)));
-          
-          bool check_covered = boost::geometry::covered_by(p, poly);
-          if (check_covered) {
-            *iter_class = segmentation.object_class; 
-            *iter_scores = segmentation.score;
-            break;  
+  if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {   
+    typedef boost::polygon::polygon_traits<polygon>::point_type img_point;
+    for (int i = 0; i < polygons.size(); ++i)
+    {
+
+      bool is_covered = boost::geometry::covered_by(img_point(img_point_x,img_point_y),polygons[i]);
+      if (is_covered) {
+        
+        auto temp_seg_info = seg_msg.segmentations[i]; 
+        
+        //class 
+        std::vector<std::string> task_obj = {"airplane","sail"}; 
+        std::vector<std::string> obst_obj = {"ball","cone","beachball"}; 
+        std::string seg_class = temp_seg_info.object_class;
+        //RCLCPP_INFO(this->get_logger(),seg_class.c_str());
+          for (auto &obj : task_obj) {
+              if (seg_class == obj) {
+                  *iter_class = 50.0;
+                  //RCLCPP_INFO(this->get_logger(),"task_obj");
+                  break;
+              }
           }
+          for (auto &obj : obst_obj) {
+              if (seg_class == obj) {
+                  *iter_class =150.0;
+                  //RCLCPP_INFO(this->get_logger(),"obst_obj");
+                  break;
+              }
+          }
+          
+        //score
+        *iter_scores = temp_seg_info.score;
+        break;
+      }else{
+        //RCLCPP_INFO(this->get_logger(),"don't coverd");
       }
     }
+      
+    }
   }
-  if (debug){
-    point_painting_pub_->publish(transformed_pointcloud);
-  }  
+  sensor_msgs::msg::PointCloud2 paint_pointcloud;
+  geometry_msgs::msg::TransformStamped reverse_transform_stamped;
+  try {
+  reverse_transform_stamped = buffer_.lookupTransform(
+    painted_pointcloud_msg.header.frame_id, camera_info.header.frame_id, camera_info.header.stamp,
+    rclcpp::Duration::from_seconds(0.1));
+  tf2::doTransform(transformed_pointcloud, paint_pointcloud , reverse_transform_stamped);
+  } catch (tf2::TransformException & ex) {
+  RCLCPP_WARN_STREAM(rclcpp::get_logger("image_projection_based_fusion"), ex.what());
+  return;
+  }
+  point_painting_pub_->publish(paint_pointcloud);
+   
+}
 }  // namespace point_painting
 
 #include <rclcpp_components/register_node_macro.hpp>
