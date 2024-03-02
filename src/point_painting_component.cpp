@@ -175,13 +175,13 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   for (const auto& seg_info : seg_msg.segmentations){
     typedef boost::polygon::polygon_traits<polygon>::point_type point;
     polygon seg_polygon;
-    for (const auto& img_point : seg_info.polygons.points){
+    for (const auto& img_point : seg_info.polygons[0].points){
       bg::append(seg_polygon, boost::polygon::construct<point>(img_point.x, img_point.y));
     }
     polygons.push_back(seg_polygon);
   }
 
-  // const auto seg_info = seg_msg.segmentations[0];
+    // const auto seg_info = seg_msg.segmentations[0];
   // typedef boost::polygon::polygon_traits<polygon>::point_type point;
   // polygon seg_polygon;
   // for (const auto& img_polygon : seg_info.polygons){
@@ -191,7 +191,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   //   }
   //   polygons.push_back(seg_polygon);
   // }
-    
+  
   /*
   点群::LiDAR座標系⇨カメラ座標系⇨画像座標系
   */
