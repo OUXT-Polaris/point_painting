@@ -61,7 +61,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   declare_parameter<std::vector<double>>("point_cloud_range");
   declare_parameter<std::vector<double>>("min_area_matrix");
   declare_parameter<std::vector<double>>("max_area_matrix");
-  declare_parameter("segmentation_topic","/SegmentationInfo");
+  declare_parameter("segmentation_topic","/detic_onnx_ros2_node/detic_result/segmentation_info");
   declare_parameter("camera_info_topic","/CameraInfo");
   declare_parameter("point_cloud_topic","/point_cloud");
   declare_parameter("debug",false);
@@ -83,7 +83,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   }
   //subscriber
   segmentation_sub_ = create_subscription<detic_onnx_ros2_msg::msg::SegmentationInfo>(
-    segmentation_topic, 1, [this](const detic_onnx_ros2_msg::msg::SegmentationInfo seg_msg){segmentation_callback(seg_msg);});
+    segmentation_topic, 10, [this](const detic_onnx_ros2_msg::msg::SegmentationInfo seg_msg){segmentation_callback(seg_msg);});
   camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
     camera_info_topic, 10, [this](const sensor_msgs::msg::CameraInfo & camera_info_msg){camera_info_callback(camera_info_msg);});
   pointcloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -167,15 +167,30 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   // segmentationからポリゴン作成
   typedef boost::polygon::polygon_data<int> polygon;
   std::vector<polygon> polygons;
+
+  int size = seg_msg.segmentations.size();
+  std::string size_str = std::to_string(size);
+  RCLCPP_INFO(this->get_logger(), size_str.c_str());
+
   for (const auto& seg_info : seg_msg.segmentations){
     typedef boost::polygon::polygon_traits<polygon>::point_type point;
     polygon seg_polygon;
-    for (const auto& img_point : seg_info.polygons[0].points){
+    for (const auto& img_point : seg_info.polygons.points){
       bg::append(seg_polygon, boost::polygon::construct<point>(img_point.x, img_point.y));
     }
     polygons.push_back(seg_polygon);
-    //RCLCPP_INFO(this->get_logger(),"add_polygon");
   }
+
+  // const auto seg_info = seg_msg.segmentations[0];
+  // typedef boost::polygon::polygon_traits<polygon>::point_type point;
+  // polygon seg_polygon;
+  // for (const auto& img_polygon : seg_info.polygons){
+  //   polygon seg_polygon;
+  //   for (const auto& img_point : img_polygon.points){
+  //     bg::append(seg_polygon, boost::polygon::construct<point>(img_point.x, img_point.y));
+  //   }
+  //   polygons.push_back(seg_polygon);
+  // }
     
   /*
   点群::LiDAR座標系⇨カメラ座標系⇨画像座標系
@@ -218,13 +233,9 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     int img_point_x = int(normalized_projected_point.x());
     int img_point_y = int(normalized_projected_point.y());
         
-    //とりあえず
-    //RCLCPP_INFO(this->get_logger(),camera_info);
+
     int width = 1280 ;
     int height = 780 ;
-    //uint32_t width = seg_img.cols;
-    //uint32_t height = seg_img.rows;
-
     *iter_class = 0.0; 
     *iter_scores = 0.0;
     if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {   
