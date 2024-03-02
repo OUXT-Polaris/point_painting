@@ -61,7 +61,7 @@ PointPaintingFusionComponent::PointPaintingFusionComponent(const rclcpp::NodeOpt
   declare_parameter<std::vector<double>>("point_cloud_range");
   declare_parameter<std::vector<double>>("min_area_matrix");
   declare_parameter<std::vector<double>>("max_area_matrix");
-  declare_parameter("segmentation_topic","/detic_onnx_ros2_node/detic_result/segmentation_info");
+  declare_parameter("segmentation_topic","/detic_node/detic_result/segmentation_info");
   declare_parameter("camera_info_topic","/CameraInfo");
   declare_parameter("point_cloud_topic","/point_cloud");
   declare_parameter("debug",false);
@@ -168,10 +168,6 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   typedef boost::polygon::polygon_data<int> polygon;
   std::vector<polygon> polygons;
 
-  int size = seg_msg.segmentations.size();
-  std::string size_str = std::to_string(size);
-  RCLCPP_INFO(this->get_logger(), size_str.c_str());
-
   for (const auto& seg_info : seg_msg.segmentations){
     typedef boost::polygon::polygon_traits<polygon>::point_type point;
     polygon seg_polygon;
@@ -232,8 +228,6 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     }
     int img_point_x = int(normalized_projected_point.x());
     int img_point_y = int(normalized_projected_point.y());
-        
-
     int width = 1280 ;
     int height = 780 ;
     *iter_class = 0.0; 
@@ -254,7 +248,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
               if (seg_class == obj) {
                   *iter_class = 50.0;
                   *iter_scores = temp_seg_info.score;
-                  //RCLCPP_INFO(this->get_logger(),"task_obj");
+                  RCLCPP_INFO(this->get_logger(),"task_obj");
                   break;
               }
           }
@@ -262,14 +256,14 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
               if (seg_class == obj) {
                   *iter_class =150.0;
                   *iter_scores = temp_seg_info.score;
-                  //RCLCPP_INFO(this->get_logger(),"obst_obj");
+                  RCLCPP_INFO(this->get_logger(),"obst_obj");
                   break;
               }
           }
         }else{
-          //*iter_class = 300.0;     
-          //*iter_scores = 100.0;
-          //RCLCPP_INFO(this->get_logger(),"don't coverd");
+          *iter_class = 300.0;     
+          *iter_scores = 100.0;
+          RCLCPP_INFO(this->get_logger(),"don't coverd");
         }
       }
       

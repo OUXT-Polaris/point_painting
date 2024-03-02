@@ -5,7 +5,7 @@
     min_area_matrix : [-100.0,100.0]
     max_area_matrix : [-100.0,100.0]
     # subscribe_topic_name
-    segmentation_topic : /detic_onnx_ros2_node/detic_result/segmentation_info 
+    segmentation_topic : /detic_node/detic_result/segmentation_info
     camera_info_topic : /wamv/sensors/cameras/ball_shooter_camera_sensor/camera_info 
     point_cloud_topic : /wamv/sensors/lidars/lidar_wamv_sensor/points
     #debug_mode
