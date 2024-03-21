@@ -167,7 +167,6 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
   // segmentationからポリゴン作成
   typedef boost::polygon::polygon_data<int> polygon;
   std::vector<polygon> polygons;
-
   for (const auto& seg_info : seg_msg.segmentations){
     typedef boost::polygon::polygon_traits<polygon>::point_type point;
     polygon seg_polygon;
@@ -176,17 +175,6 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     }
     polygons.push_back(seg_polygon);
   }
-
-    // const auto seg_info = seg_msg.segmentations[0];
-  // typedef boost::polygon::polygon_traits<polygon>::point_type point;
-  // polygon seg_polygon;
-  // for (const auto& img_polygon : seg_info.polygons){
-  //   polygon seg_polygon;
-  //   for (const auto& img_point : img_polygon.points){
-  //     bg::append(seg_polygon, boost::polygon::construct<point>(img_point.x, img_point.y));
-  //   }
-  //   polygons.push_back(seg_polygon);
-  // }
   
   /*
   点群::LiDAR座標系⇨カメラ座標系⇨画像座標系
@@ -207,9 +195,9 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
 
   Eigen::Matrix4d camera_projection;  //Homogeneous Coordinates
   camera_projection << camera_info.p.at(0), camera_info.p.at(1), camera_info.p.at(2),
-    camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6),
-    camera_info.p.at(7), camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10),
-    camera_info.p.at(11), 0, 0, 1, 0;
+    camera_info.p.at(3), camera_info.p.at(4), camera_info.p.at(5), camera_info.p.at(6), 
+    camera_info.p.at(7),camera_info.p.at(8), camera_info.p.at(9), camera_info.p.at(10), 
+    camera_info.p.at(11), 0.0, 0.0, 1.0 ,0.0;
 
   sensor_msgs::PointCloud2Iterator<float> iter_class(transformed_pointcloud, "class");
   sensor_msgs::PointCloud2Iterator<float> iter_scores(transformed_pointcloud, "scores");
@@ -228,14 +216,17 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     }
     int img_point_x = int(normalized_projected_point.x());
     int img_point_y = int(normalized_projected_point.y());
-    int width = 1280 ;
-    int height = 780 ;
+        
+
+    int width = camera_info.width ;
+    int height = camera_info.height ;
     *iter_class = 0.0; 
     *iter_scores = 0.0;
     if (0 <= img_point_x && img_point_x <= int(width) && 0 <= img_point_y && img_point_y <= int(height)) {   
-      typedef boost::polygon::polygon_traits<polygon>::point_type img_point;
       for (int i = 0; i < static_cast<int>(polygons.size()); ++i)
       {
+        //typedef boost::polygon::polygon_traits<polygon>::point_type img_point;
+        typedef bg::model::point<double, 2, bg::cs::cartesian> img_point;
         bool is_covered = boost::geometry::covered_by(img_point(img_point_x,img_point_y),polygons[i]);
         if (is_covered) {
           auto temp_seg_info = seg_msg.segmentations[i]; 
@@ -248,7 +239,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
               if (seg_class == obj) {
                   *iter_class = 50.0;
                   *iter_scores = temp_seg_info.score;
-                  RCLCPP_INFO(this->get_logger(),"task_obj");
+                  //RCLCPP_INFO(this->get_logger(),"task_obj");
                   break;
               }
           }
@@ -256,14 +247,14 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
               if (seg_class == obj) {
                   *iter_class =150.0;
                   *iter_scores = temp_seg_info.score;
-                  RCLCPP_INFO(this->get_logger(),"obst_obj");
+                  //RCLCPP_INFO(this->get_logger(),"obst_obj");
                   break;
               }
           }
         }else{
           *iter_class = 300.0;     
           *iter_scores = 100.0;
-          RCLCPP_INFO(this->get_logger(),"don't coverd");
+          //RCLCPP_INFO(this->get_logger(),"don't coverd");
         }
       }
       
