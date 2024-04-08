@@ -171,10 +171,21 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
     typedef boost::polygon::polygon_traits<polygon>::point_type point;
     polygon seg_polygon;
     for (const auto& img_point : seg_info.polygons[0].points){
-      bg::append(seg_polygon, boost::polygon::construct<point>(img_point.x, img_point.y));
+      bg::append(seg_polygon, boost::polygon::construct<point>(img_point.y, img_point.x));
     }
     polygons.push_back(seg_polygon);
   }
+
+  //debug用(変換がただしくできているか?)
+  // const int WIDTH = camera_info.width;
+  // const int HEIGHT = camera_info.height;
+  // typedef boost::polygon::polygon_traits<polygon>::point_type point;
+  // polygon seg_polygon;
+  // bg::append(seg_polygon, boost::polygon::construct<point>(0,0));
+  // bg::append(seg_polygon, boost::polygon::construct<point>(HEIGHT,0));
+  // bg::append(seg_polygon, boost::polygon::construct<point>(HEIGHT,WIDTH));
+  // bg::append(seg_polygon, boost::polygon::construct<point>(0,WIDTH));
+  // polygons.emplace_back(seg_polygon);
   
   /*
   点群::LiDAR座標系⇨カメラ座標系⇨画像座標系
@@ -227,7 +238,7 @@ void PointPaintingFusionComponent::fuseOnSingleImage(
       {
         //typedef boost::polygon::polygon_traits<polygon>::point_type img_point;
         typedef bg::model::point<double, 2, bg::cs::cartesian> img_point;
-        bool is_covered = boost::geometry::covered_by(img_point(img_point_x,img_point_y),polygons[i]);
+        bool is_covered = boost::geometry::covered_by(img_point(img_point_y,img_point_x),polygons[i]);
         if (is_covered) {
           auto temp_seg_info = seg_msg.segmentations[i]; 
           //class 
