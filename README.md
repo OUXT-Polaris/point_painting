@@ -11,3 +11,6 @@ Receiving topics can be changed in `config/pointpainting_config.yaml`
 
 ## publish
 - `point_painting` : point_painting result(/point_painting)
+
+
+[Uploading Screencast from 2024年04月14日 07時09分19秒.webm…]()
