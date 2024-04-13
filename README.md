@@ -13,4 +13,4 @@ Receiving topics can be changed in `config/pointpainting_config.yaml`
 - `point_painting` : point_painting result(/point_painting)
 
 
-[Uploading Screencast from 2024年04月14日 07時09分19秒.webm…]()
+![Screencast from 2024年04月14日 07時09分19秒](https://github.com/OUXT-Polaris/point_painting/assets/82552894/cf63aa6a-de7a-458e-9d65-a2a85c77d294)
