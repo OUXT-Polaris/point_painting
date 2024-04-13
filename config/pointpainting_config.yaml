@@ -9,5 +9,10 @@
     #camera_info_topic : /wamv/sensors/cameras/ball_shooter_camera_sensor/optical/camera_info 
     camera_info_topic : /wamv/sensors/cameras/front_left_camera_sensor/optical/camera_info  
     point_cloud_topic : /wamv/sensors/lidars/lidar_wamv_sensor/points
-    #debug_mode
+    # debug_mode
     debug : false
+
+    # task_objの定義
+    task_obj: ["airplane","sail"]
+    # obst_objの定義 
+    obst_obj: ["ball","cone","beachball"]
