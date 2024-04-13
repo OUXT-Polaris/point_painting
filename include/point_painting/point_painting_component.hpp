@@ -23,17 +23,33 @@
 #include <memory>  
 #include <optional>
 #include <tf2_ros/buffer.h>
+#include <vector>
+#include <Eigen/Dense>
+#include <optional>
+#include <string>
+#include <cstdint>
 
+//ros2
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-#include "segmentation_msg/msg/segmentation_info.hpp"
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 #include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "detic_onnx_ros2_msg/msg/segmentation_info.hpp"
 
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/time_synchronizer.h>
 
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/highgui.hpp>
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
+#include <boost/geometry/geometries/adapted/boost_tuple.hpp>
+#include <boost/assign.hpp> 
 
 namespace point_painting
 {
@@ -44,6 +60,8 @@ public:
   explicit PointPaintingFusionComponent(const rclcpp::NodeOptions & options);
  
 private:
+  std::vector<std::string> task_obj;
+  std::vector<std::string> obst_obj;
   bool debug;
   tf2_ros::Buffer buffer_;
   tf2_ros::TransformListener listener_;
@@ -52,28 +70,32 @@ private:
 
   void preprocess(sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg);
   void fuseOnSingleImage(
-  const segmentation_msg::msg::SegmentationInfo & SegmentationInfo,
+  const detic_onnx_ros2_msg::msg::SegmentationInfo & SegmentationInfo,
   sensor_msgs::msg::PointCloud2 & painted_pointcloud_msg,
   const sensor_msgs::msg::CameraInfo & camera_info
   );
+
+  message_filters::Subscriber<detic_onnx_ros2_msg::msg::SegmentationInfo> segmentation_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::PointCloud2> pointcloud_sub_;
+  typedef message_filters::sync_policies::ApproximateTime<detic_onnx_ros2_msg::msg::SegmentationInfo,sensor_msgs::msg::PointCloud2> approximate_policy;
+  message_filters::Synchronizer<approximate_policy> sync_;
   
+  void topic_callback(const detic_onnx_ros2_msg::msg::SegmentationInfo & seg_msg,const sensor_msgs::msg::PointCloud2 &pointcloud_msg);
+
   //timer
   rclcpp::TimerBase::SharedPtr timer_;
   void timer_callback();
   //ros2 message
-  segmentation_msg::msg::SegmentationInfo segmentationinfo_; 
+  detic_onnx_ros2_msg::msg::SegmentationInfo segmentationinfo_; 
   sensor_msgs::msg::CameraInfo  camera_info_;
   //Publisher
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_painting_pub_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr preprocess_debug_pub_;
   
   //Subscriber
-  rclcpp::Subscription<segmentation_msg::msg::SegmentationInfo>::SharedPtr segmentation_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
+  
   //callback
-  void segmentation_callback(const segmentation_msg::msg::SegmentationInfo &  segmentationinfo);
-  void pointcloud_callback(const sensor_msgs::msg::PointCloud2 &  pointcloud);
   void camera_info_callback(const sensor_msgs::msg::CameraInfo  & camera_info);
 };
 }  
