@@ -4,7 +4,7 @@ on RGB images and add class scores to the raw LiDAR pointcloud.
 Prepared with reference to [the original paper](https://arxiv.org/pdf/1911.10150.pdf)
 
 ## subscribe
-- `pointcloud` : LiDAR data  (/wamv/sensors/lidars/lidar_wamv_sensor/points)
+- `pointcloud` : LiDAR data 
 - `segmentation_result` : Segmentation class and score results(/SegmentationInfo)
 
 Receiving topics can be changed in `config/pointpainting_config.yaml`
@@ -12,5 +12,6 @@ Receiving topics can be changed in `config/pointpainting_config.yaml`
 ## publish
 - `point_painting` : point_painting result(/point_painting)
 
-
-![Screencast from 2024年04月14日 07時09分19秒](https://github.com/OUXT-Polaris/point_painting/assets/82552894/cf63aa6a-de7a-458e-9d65-a2a85c77d294)
+<img src="https://github.com/OUXT-Polaris/point_painting/assets/82552894/cf63aa6a-de7a-458e-9d65-a2a85c77d294" width="700">
+<!-- ![Screencast from 2024年04月14日 07時09分19秒](https://github.com/OUXT-Polaris/point_painting/assets/82552894/cf63aa6a-de7a-458e-9d65-a2a85c77d294)
+ -->
