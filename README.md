@@ -11,3 +11,8 @@ Receiving topics can be changed in `config/pointpainting_config.yaml`
 
 ## publish
 - `point_painting` : point_painting result(/point_painting)
+
+
+
+https://github.com/OUXT-Polaris/point_painting/assets/82552894/d23173d4-4e3f-45e6-a366-ca3db836a0b7
+
