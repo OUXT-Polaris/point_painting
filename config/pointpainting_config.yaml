@@ -1,12 +1,18 @@
 /**:
   ros__parameters:
     # point painting range
-    point_cloud_range: [-76.8, -76.8, -3.0, 76.8, 76.8, 5.0]
-    min_area_matrix : [30.0,90.0]
-    max_area_matrix : [30.0,90.0]
+    point_cloud_range: [-720.0, -720.0, -100.0, 720.0,720.0, 100.0]
+    min_area_matrix : [-100.0,100.0]
+    max_area_matrix : [-100.0,100.0]
     # subscribe_topic_name
-    segmentation_topic : /SegmentationInfo
-    camera_info_topic : /wamv/sensors/cameras/ball_shooter_camera_sensor/camera_info
+    segmentation_topic : /detic_node/detic_result/segmentation_info
+    #camera_info_topic : /wamv/sensors/cameras/ball_shooter_camera_sensor/optical/camera_info 
+    camera_info_topic : /wamv/sensors/cameras/front_left_camera_sensor/optical/camera_info  
     point_cloud_topic : /wamv/sensors/lidars/lidar_wamv_sensor/points
-    #debug_mode
-    debug : true
+    # debug_mode
+    debug : false
+
+    # task_objの定義
+    task_obj: ["airplane","sail"]
+    # obst_objの定義 
+    obst_obj: ["ball","cone","beachball"]
